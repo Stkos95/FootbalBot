@@ -32,16 +32,38 @@ async def get_team_name(message: types.Message, state: FSMContext):
         await message.answer(f'Вы выбрали турнир "{name}"', reply_markup=ReplyKeyboardRemove())
         text = 'Укажите номер, под которым указана ваша команда:\n'
         team_dict = parsing_page.get_list_of_teams(data['session'])
+        data['teams'] = team_dict
     text += '\n'.join([f'{i + 1}) {val}' for i, val in enumerate(team_dict)])
     await message.answer(text, reply_markup=generate_kb_team_choice(team_dict))
-    print(generate_kb_team_choice)
+    print(team_dict)
     await ChoiceTeam.team.set()
 
 async def processing_team(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await call.answer()
+    await state.update_data(team_name=callback_data.get('name'))
     team_name = callback_data.get('name')
+
+    await call.message.answer(f'Вы выбрали команду {team_name}, Все верно?')
+    await ChoiceTeam.confirmation.set()
+
+async def refuse_chosen_team(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        data['session']
+        team_dict = data['teams']
+    await message.answer('Выберите команду повторно.', reply_markup=generate_kb_team_choice(team_dict))
+    await ChoiceTeam.team.set()
+
+async def confirm_chosen_team(message: types.Message, state: FSMContext):
+
+    async with state.proxy() as data:
+        team_name = data.get('team_name')
+        team_id = data['teams'].get(team_name).split('=')[-1]  # в словаре ссылка формата http://lmfl.ru/cp/tournament/1017964/application/view?team_id=1203706
+        team_link = f'http://lmfl.ru/cp/team/{team_id}/players'
+        link_add_player = f'http://lmfl.ru/cp/player/profile/create?team_id={team_id}'
+    print(team_link)
+
+
+
+
 
 
 
@@ -78,6 +100,7 @@ async def processing_team(call: types.CallbackQuery, state: FSMContext, callback
 
 
 def register(dp: Dispatcher):
+    dp.register_message_handler(refuse_chosen_team, (lambda message: message.text.strip().lower() == 'нет'), state=ChoiceTeam.confirmation)
     dp.register_message_handler(get_tournaments_list, commands=['start'])
     dp.register_message_handler(get_team_name, state=ChoiceTeam.tournament)
     # dp.register_message_handler(check_photo, content_types= types.ContentTypes.DOCUMENT | types.ContentTypes.PHOTO)

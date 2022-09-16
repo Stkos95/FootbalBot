@@ -57,9 +57,13 @@ def get_list_of_teams(s: requests.Session):
     #     name = info.text
     return list_of_teams
 
-def add_player_to_team(s: requests.Session):
+def add_player_to_team(s: requests.Session, link_add_player):
     """описать функцию для добавления игрока в команду, когда уже выбрана команда."""
-    pass
+    r = s.get(link_add_player, headers=headers)
+    soup = bs(r.content, 'html5lib')
+    '''Доделать'''
+
+
 
 
 
