@@ -1,0 +1,7 @@
+.env
+*.jpeg
+/documents
+venv/
+.idea/
+Dockerfile
+__pycache__/
