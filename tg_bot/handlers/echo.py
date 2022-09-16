@@ -5,11 +5,12 @@ from aiogram.types import ReplyKeyboardRemove
 from tg_bot.misc import parsing_page
 from tg_bot.keyboards.reply import generate_kb_list_of_tournaments
 from tg_bot.keyboards.inline import generate_kb_team_choice
-from tg_bot.FSM.states import ChoiceTeam
+from tg_bot.FSM.states import ChoiceTeam, AddPlayer
 from io import BytesIO
 from tg_bot.keyboards.callbackdatas import team_callback
+import re
 
-
+DATE_TEMPLATE_REG = '^[0-3]?[0-9].[0-3]?[0-9].(?:[0-9]{2})?[0-9]{2}$'
 
 async def get_tournaments_list(message: types.Message, state: FSMContext):
     session = requests.Session()
@@ -53,6 +54,9 @@ async def refuse_chosen_team(message: types.Message, state: FSMContext):
     await ChoiceTeam.team.set()
 
 async def confirm_chosen_team(message: types.Message, state: FSMContext):
+    # team_name = await state.get_data()
+    # team_name = team_name.get('')
+
 
     async with state.proxy() as data:
         team_name = data.get('team_name')
@@ -60,6 +64,42 @@ async def confirm_chosen_team(message: types.Message, state: FSMContext):
         team_link = f'http://lmfl.ru/cp/team/{team_id}/players'
         link_add_player = f'http://lmfl.ru/cp/player/profile/create?team_id={team_id}'
     print(team_link)
+    await message.answer('Укажи фамилию игрока:')
+    await AddPlayer.second_name.set()
+
+async def ask_second_name(message: types.Message, state: FSMContext):
+    if any(map(str.isdigit, message.text)):
+        await message.answer('Некорректно указана фамилия! попробуйте еще раз!')
+        return
+    await state.update_data(player_second_name=message.text.capitalize())
+
+    await message.answer('Укажи имя игрока:')
+    await AddPlayer.name.set()
+
+async def ask_name(message: types.Message, state: FSMContext):
+    if any(map(str.isdigit, message.text)):
+        await message.answer('Некорректно указано имя! попробуйте еще раз!')
+        return
+    await state.update_data(player_name=message.text.capitalize())
+    await message.answer('Укажи дату в формате дд.мм.гггг')
+    await AddPlayer.birthday.set()
+
+
+
+async def ask_birthday(message: types.Message, state: FSMContext):
+    if not re.match(DATE_TEMPLATE_REG, message.text):
+        await message.answer('Некорректная дата!')
+        return
+    await state.update_data(player_birthday=message.text)
+    player_info = await state.get_data()
+    name = player_info.get('player_name')
+    second_name = player_info.get('player_second_name')
+    date = player_info.get('player_birthday')
+    await message.answer(f'{second_name} {name}\n{date}')
+
+
+
+
 
 
 
@@ -100,7 +140,13 @@ async def confirm_chosen_team(message: types.Message, state: FSMContext):
 
 
 def register(dp: Dispatcher):
+    dp.register_message_handler(ask_birthday, state=AddPlayer.birthday)
+    dp.register_message_handler(ask_second_name, state=AddPlayer.second_name)
+    dp.register_message_handler(ask_name, state=AddPlayer.name)
     dp.register_message_handler(refuse_chosen_team, (lambda message: message.text.strip().lower() == 'нет'), state=ChoiceTeam.confirmation)
+    dp.register_message_handler(confirm_chosen_team, state=ChoiceTeam.confirmation)
+    dp.register_message_handler(ask_name, state=AddPlayer.second_name)
+
     dp.register_message_handler(get_tournaments_list, commands=['start'])
     dp.register_message_handler(get_team_name, state=ChoiceTeam.tournament)
     # dp.register_message_handler(check_photo, content_types= types.ContentTypes.DOCUMENT | types.ContentTypes.PHOTO)

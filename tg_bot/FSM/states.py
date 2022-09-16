@@ -5,3 +5,9 @@ class ChoiceTeam(StatesGroup):
     tournament = State()
     team = State()
     confirmation = State()
+
+class AddPlayer(StatesGroup):
+    second_name = State()
+    name = State()
+    birthday = State()
+    photo = State()
