@@ -5,3 +5,11 @@ venv/
 .idea/
 Dockerfile
 __pycache__/
+test*.py
+*.txt
+scrap_data.py
+/api
+joinFootball.py
+parsing_page.py
+templates_messages.py
+echo.py

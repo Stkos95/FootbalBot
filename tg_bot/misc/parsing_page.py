@@ -36,11 +36,9 @@ def get_list_of_tournaments(s: requests.Session):
 def log_in(s: requests.Session):
     url = 'http://lmfl.ru/user/login'
     r = s.get(url, headers=headers)
-    src = r.content
-    soup = bs(src, 'html5lib')
-    csrf = soup.find('input', attrs={'name': '_csrf'})[
-        'value']  # Делаю запрос на страницу входа, получаю значение 'value' поля ввода
-    login_data['_csrf'] = csrf  # Полученное значение добавляю в словарь с данными для последующего POST запроса
+    soup = bs(r.content, 'html5lib')
+    csrf = soup.find('input', attrs={'name': '_csrf'})['value']          # Делаю запрос на страницу входа, получаю значение 'value' поля ввода
+    login_data['_csrf'] = csrf                                                      # Полученное значение добавляю в словарь с данными для последующего POST запроса
     r = s.post(url, data=login_data, headers=headers)
 
 
