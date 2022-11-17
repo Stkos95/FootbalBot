@@ -16,7 +16,8 @@ class Admins(Base):
     # tournament_id = Column(Integer)
     date = Column(TIMESTAMP, default=datetime.datetime.now())
     team = relationship('Teams')
-    # tournament = relationship('Tournaments')
+    # admin_rang = Column(Integer, not
+
     full_name = relationship('Users')
 
 

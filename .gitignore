@@ -13,3 +13,8 @@ joinFootball.py
 parsing_page.py
 templates_messages.py
 echo.py
+*.png
+tg_bot/misc/joinfootball_requests.py
+tg_bot/misc/image_processing
+*.ttf
+doubles/

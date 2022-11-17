@@ -8,7 +8,7 @@ from aiogram.dispatcher import FSMContext
 from tg_bot.keyboards.inline import admin_kb_confirm_registration
 
 Session = get_engine_connection()
-MAX_COUNT_ADMINS = 3
+MAX_COUNT_ADMINS = 3 # Не используется
 
 
 async def greeting_funct(message: types.Message, state: FSMContext):
@@ -30,8 +30,18 @@ async def greeting_funct(message: types.Message, state: FSMContext):
                                  reply_markup=kb)
             await state.set_state('not_registered_1')
             await state.update_data(user_id=user_id)
+        elif admin.rang == 1: #Значит что это администратор бота/лиги и тд, кто имеет доступ ко всем командам.
+            pass
         else:
-            await message.answer(f'Вы администратор команды "{admin.team.team_name}"')
+            await message.answer(f'Вы администратор команды "{admin.team.team_name}"\n'
+                                 f'Выберите действие:',
+                                 reply_markup=InlineKeyboardMarkup(
+                                     inline_keyboard=[
+                                         [
+                                             InlineKeyboardButton(text='Заявить игрока', callback_data='request')
+                                         ]
+                                     ]
+                                 ))
             await state.set_state('registered_1') # Дальнейшие действия указаны в 'request_players'
 
 
