@@ -17,34 +17,48 @@ async def greeting_funct(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     # user_id = random.randint(1,1000000) # Убрать после тестирования
     with Session() as session:
-
         statement = select(Admins).join(Admins.team).where(Admins.user_id == user_id)
-        admin = session.execute(statement).scalars().first()
+        admin = session.execute(statement).scalars().all()
+
 
         if not admin:
-            statement1 = select(Tournaments.tournament_id, Tournaments.name)
-            tournaments = session.execute(statement1).all()
-            kb = InlineKeyboardMarkup()
-            [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
-            await message.answer('Вы не авторизованы, нужно вас зарегистрировать. Выберите лигу, где играет ваша команда?',
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="Зарегистрироваться", callback_data='registration')
+                ],
+                [
+                    InlineKeyboardButton(text='Отмена', callback_data='cancel')
+                ]
+            ])
+            await message.answer('Вы не зарегистрированы.\nДля регистрации нажмите на кнопку Зарегистрироваться',
                                  reply_markup=kb)
-            await state.set_state('not_registered_1')
-            await state.update_data(user_id=user_id)
-        # elif admin.rang == 1: #Значит что это администратор бота/лиги и тд, кто имеет доступ ко всем командам.
-        #     pass
-        else:
-            await message.answer(f'Вы администратор команды "{admin.team.team_name}"\n'
-                                 f'Выберите действие:',
-                                 reply_markup=InlineKeyboardMarkup(
-                                     inline_keyboard=[
-                                         [
-                                             InlineKeyboardButton(text='Моя команда', callback_data='my_team'),
-                                             # InlineKeyboardButton(text='Турниры', callback_data='request')
-                                         ]
-                                     ]
-                                 ))
+            # statement1 = select(Tournaments.tournament_id, Tournaments.name)
+            # tournaments = session.execute(statement1).all()
+            # kb = InlineKeyboardMarkup()
+            # [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
+            # await message.answer('Вы не авторизованы, нужно вас зарегистрировать. Выберите лигу, где играет ваша команда?',
+            #                      reply_markup=kb)
+            # await state.set_state('not_registered_1')
+            # await state.update_data(user_id=user_id)
+
+        # else:
+        #     await message.answer(f'Вы администратор команды "{admin.team.team_name}"\n'
+        #                          f'Выберите действие:',
+        #                          reply_markup=InlineKeyboardMarkup(
+        #                              inline_keyboard=[
+        #                                  [
+        #                                      InlineKeyboardButton(text='Моя команда', callback_data='my_team'),
+        #                                      # InlineKeyboardButton(text='Турниры', callback_data='request')
+        #                                  ]
+        #                              ]
+        #                          ))
+
+
+
             # await state.set_state('my-team')
             # await state.set_state('registered_1') # Дальнейшие действия указаны в 'request_players'
+
+
 
 
 
@@ -117,7 +131,7 @@ async def registration_name_input(message: types.Message, state: FSMContext):
 
 
 def register_greet(dp: Dispatcher):
-    dp.register_message_handler(greeting_funct, commands=['hello'])
+    dp.register_message_handler(greeting_funct, commands=['registration'])
     dp.register_callback_query_handler(registration_start, state='not_registered_1')
     dp.register_callback_query_handler(registration_team_chocen, state='not_registered_team')
     dp.register_message_handler(registration_name_input, state='not_registered_fio')

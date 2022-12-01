@@ -8,22 +8,33 @@ Base = declarative_base()
 
 
 
+# class Admins(Base):
+#     __tablename__ = 'admins'
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey('users.user_id'))
+#     team_id = Column(Integer, ForeignKey('teams.team_id'), nullable=False, )
+#     # tournament_id = Column(Integer)
+#     date = Column(TIMESTAMP, default=datetime.datetime.now())
+#     team = relationship('Teams')
+#     # admin_rang = Column(Integer, not
+#
+#     full_name = relationship('Users')
+
 class Admins(Base):
     __tablename__ = 'admins'
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'))
-    team_id = Column(Integer, ForeignKey('teams.team_id'), nullable=False, )
-    # tournament_id = Column(Integer)
+    # id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
+    team_id = Column(Integer, ForeignKey('teams.team_id'), nullable=False, primary_key=True )
     date = Column(TIMESTAMP, default=datetime.datetime.now())
-    team = relationship('Teams')
+    # team = relationship('Teams')
     # admin_rang = Column(Integer, not
 
-    full_name = relationship('Users')
+    # full_name = relationship('Users')
 
 
-
-    def __repr__(self):
-        return f'Admins({self.user_id}, name={self.full_name}, team={self.team})'
+    #
+    # def __repr__(self):
+    #     return f'Admins({self.user_id}, name={self.full_name}, team={self.team})'
 
 
 
@@ -35,6 +46,7 @@ class Users(Base):
     user_full_name = Column(String, nullable=False)
     username = Column(String, nullable=False)
     is_admin = Column(String)
+    admin = relationship('Teams', secondary='admins')
 
 
 
@@ -76,5 +88,18 @@ class TeamTournaments(Base):
     team_id = Column(Integer, primary_key=True)
     tournament_id = Column(Integer, primary_key=True)
 
-
-
+# from sqlalchemy import create_engine, select
+# from sqlalchemy.orm import sessionmaker
+#
+# URLDATABASE = f'postgresql+psycopg2://konstantin:123321@localhost:5432/men'
+# def get_engine_connection(URLDATABASE=URLDATABASE):
+#     engine = create_engine(URLDATABASE, future=True)
+#     Base.metadata.create_all(engine)
+#     session = sessionmaker(engine, future=True)
+#     return session
+#
+#
+# Session = get_engine_connection()
+# with Session() as session:
+#     res = session.execute(select(Admins)).scalars().all()
+#     # print(res[])
