@@ -14,12 +14,18 @@ class Database:
     db_name: str
 
 @dataclass
+class Joinsport:
+    token: str
+    # token_women: str
+    url: str
+
+
+@dataclass
 class Config:
     token: str
     admin: int
     database: Database
-
-
+    joinsport: Joinsport
 
 
 
@@ -36,6 +42,11 @@ def load_config():
             password=env.str('PASSWORD'),
             db_name=env.str('DB_NAME')
 
+        ),
+        joinsport=Joinsport(
+            token=env.str('TOKEN_MEN'),
+            # token=env.str('TOKEN_MEN'),
+            url=env.str('URL_JOINSPORT')
         )
     )
 

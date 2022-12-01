@@ -18,3 +18,5 @@ tg_bot/misc/joinfootball_requests.py
 tg_bot/misc/image_processing
 *.ttf
 doubles/
+*.ini
+/migrations

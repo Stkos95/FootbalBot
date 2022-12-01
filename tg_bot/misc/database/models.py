@@ -34,6 +34,7 @@ class Users(Base):
     user_id = Column(Integer, primary_key=True)
     user_full_name = Column(String, nullable=False)
     username = Column(String, nullable=False)
+    is_admin = Column(String)
 
 
 
@@ -69,6 +70,11 @@ class Confirmation(Base):
     team_id = Column(Integer, nullable=False)
 
 
+
+class TeamTournaments(Base):
+    __tablename__ = 'teams_application'
+    team_id = Column(Integer, primary_key=True)
+    tournament_id = Column(Integer, primary_key=True)
 
 
 

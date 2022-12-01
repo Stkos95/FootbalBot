@@ -17,9 +17,10 @@ async def registration_get_result_confirm(call: types.CallbackQuery, state: FSMC
     with Session() as session:
         statement = select(Confirmation).where(Confirmation.id == int(row_id))
         result = session.execute(statement).scalars().first()
+        print(result.user_id)
         session.add(Admins(user_id=result.user_id, team_id=result.team_id))
         session.commit()
-    await call.bot.send_message(result.user_id,'Вашу заявку подтвердили, можете продолжить пользоваться ботом!')
+        await call.bot.send_message(result.user_id,'Вашу заявку подтвердили, можете продолжить пользоваться ботом!')
 
 
 
