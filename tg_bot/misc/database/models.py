@@ -47,10 +47,15 @@ class Users(Base):
     user_id = Column(Integer, primary_key=True)
     user_full_name = Column(String, nullable=False)
     username = Column(String, nullable=False)
+
     permisions = Column(Integer)
     # is_admin = Column(Boolean)
     # admin = relationship('Teams', secondary='admins')
     admin_users = relationship('Admins', back_populates='user')
+
+
+
+
 
 
 
@@ -91,10 +96,12 @@ class TeamTournaments(Base):
     team_id = Column(Integer, primary_key=True)
     tournament_id = Column(Integer, primary_key=True)
 
+
 class Permisions(Base):
     __tablename = 'permisions'
     permision_id = Column(Integer, primary_key=True)
     description = Column(String(20))
+
 
 
 # from sqlalchemy import create_engine, select

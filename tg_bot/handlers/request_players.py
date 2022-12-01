@@ -41,6 +41,8 @@ async def check_player_fio_in_teams(message: types.Message, state: FSMContext):
 
 
 def registration_requests(dp: Dispatcher):
-    pass
-    # dp.register_callback_query_handler(enter_player_name, state='registered_1', callback='add_player')
-    # dp.register_callback_query_handler(enter_player_name, state='registered_1', callback='request') # test
+
+
+    dp.register_callback_query_handler(enter_player_name, state='registered_1', callback='add_player')
+    dp.register_callback_query_handler(enter_player_name, state='registered_1', callback='request') # test
+
