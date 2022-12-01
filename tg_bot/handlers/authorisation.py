@@ -14,8 +14,8 @@ MAX_COUNT_ADMINS = 3 # Не используется
 async def greeting_funct(message: types.Message, state: FSMContext):
 
     await message.answer('Привет')
-    # user_id = message.from_user.id
-    user_id = random.randint(1,1000000) # Убрать после тестирования
+    user_id = message.from_user.id
+    # user_id = random.randint(1,1000000) # Убрать после тестирования
     with Session() as session:
 
         statement = select(Admins).join(Admins.team).where(Admins.user_id == user_id)
@@ -30,19 +30,21 @@ async def greeting_funct(message: types.Message, state: FSMContext):
                                  reply_markup=kb)
             await state.set_state('not_registered_1')
             await state.update_data(user_id=user_id)
-        elif admin.rang == 1: #Значит что это администратор бота/лиги и тд, кто имеет доступ ко всем командам.
-            pass
+        # elif admin.rang == 1: #Значит что это администратор бота/лиги и тд, кто имеет доступ ко всем командам.
+        #     pass
         else:
             await message.answer(f'Вы администратор команды "{admin.team.team_name}"\n'
                                  f'Выберите действие:',
                                  reply_markup=InlineKeyboardMarkup(
                                      inline_keyboard=[
                                          [
-                                             InlineKeyboardButton(text='Заявить игрока', callback_data='request')
+                                             InlineKeyboardButton(text='Моя команда', callback_data='my_team'),
+                                             # InlineKeyboardButton(text='Турниры', callback_data='request')
                                          ]
                                      ]
                                  ))
-            await state.set_state('registered_1') # Дальнейшие действия указаны в 'request_players'
+            # await state.set_state('my-team')
+            # await state.set_state('registered_1') # Дальнейшие действия указаны в 'request_players'
 
 
 
