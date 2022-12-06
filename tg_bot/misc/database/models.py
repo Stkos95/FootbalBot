@@ -48,7 +48,7 @@ class Users(Base):
     user_full_name = Column(String, nullable=False)
     username = Column(String, nullable=False)
 
-    team_id = Column(Integer, ForeignKey('teams.team_id'))
+    team_id = Column(Integer,  ForeignKey('teams.team_id'), primary_key=True)
 
     permisions = Column(Integer)
     # is_admin = Column(Boolean)
@@ -79,6 +79,7 @@ class Teams(Base):
     team_name = Column(String, nullable=False)
     tournament_id = Column(Integer, ForeignKey('tournaments.tournament_id'), nullable=False)
     tournament = relationship('Tournaments', back_populates='tourn')
+    # user = relationship('Users')
     # admin = relationship('Admins')
     # admin_teams = relationship('Admins', back_populates='team')
 

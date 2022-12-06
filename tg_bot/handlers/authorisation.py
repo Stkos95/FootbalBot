@@ -24,13 +24,27 @@ async def registration_message(message: types.Message, state: FSMContext):
         await state.set_state('not_registered_1')
         await state.update_data(user_id=user_id)
 
+async def registration_callback(call: types.CallbackQuery, state: FSMContext):
+    await call.message.answer("вы выбрали регистрацию!")
+    user_id = call.from_user.id
+    with Session() as session:
+        statement1 = select(Tournaments.tournament_id, Tournaments.name)
+        tournaments = session.execute(statement1).all()
+        kb = InlineKeyboardMarkup()
+        [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
+        await call.message.answer('Выберите лигу, где играет ваша команда:',
+                             reply_markup=kb)
+        await state.set_state('not_registered_1')
+        await state.update_data(user_id=user_id)
+        await state.update_data(is_old=True)
+
+
 
 
 async def greeting_funct(message: types.Message, state: FSMContext):
     await message.answer('Привет')
     user_id = message.from_user.id
     with Session() as session:
-
         statement = select(Users).where(Users.user_id == user_id)
         admin = session.execute(statement).scalars().all()
 
@@ -110,7 +124,6 @@ async def registration_name_input(message: types.Message, state: FSMContext, per
         row_id = temporary_confirmation.id
 
         team_admins = session.execute(select(Users).join(Teams).where(and_(Users.team_id == team_id, Users.permisions == 1))).all()
-
         print(team_admins)
         try:
             session.add(Users(user_id=user_id, user_full_name=user_full_name, username=username, team_id=team_id, permisions=1))
@@ -131,11 +144,8 @@ async def registration_name_input(message: types.Message, state: FSMContext, per
 
 
 def register_greet(dp: Dispatcher):
-
     dp.register_message_handler(registration_message, text='Регистрация')
     dp.register_callback_query_handler(registration_callback, text='add_team')
-
-
     dp.register_message_handler(greeting_funct, commands=['registration'])
     dp.register_callback_query_handler(registration_start, state='not_registered_1')
     dp.register_callback_query_handler(registration_team_chocen, state='not_registered_team')
