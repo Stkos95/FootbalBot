@@ -1,7 +1,7 @@
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, select
 from sqlalchemy import text
-from .models import Base, Admins, Users, Teams
+from .models import Base, Users, Teams
 from config import load_config
 
 config = load_config()
@@ -16,4 +16,5 @@ def get_engine_connection(URLDATABASE=URLDATABASE):
     Base.metadata.create_all(engine)
     session = sessionmaker(engine, future=True)
     return session
+
 

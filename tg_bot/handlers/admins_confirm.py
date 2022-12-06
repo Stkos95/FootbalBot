@@ -4,7 +4,7 @@ from aiogram.dispatcher import FSMContext
 from tg_bot.misc import joinFootball
 from tg_bot.keyboards.callbackdatas import confirmation_callback
 from tg_bot.misc.database.db import  get_engine_connection
-from tg_bot.misc.database.models import Admins, Tournaments, Teams, Confirmation
+from tg_bot.misc.database.models import Tournaments, Teams, Confirmation
 
 Session = get_engine_connection()
 # joinFootball.prepare_teams()

@@ -19,15 +19,15 @@ Base = declarative_base()
 #     # admin_rang = Column(Integer, not
 #
 #     full_name = relationship('Users')
-
-class Admins(Base):
-    __tablename__ = 'admins'
-    # id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
-    team_id = Column(Integer, ForeignKey('teams.team_id'), nullable=False, primary_key=True )
-    date = Column(TIMESTAMP, default=datetime.datetime.now())
-    user = relationship('Users', back_populates='admin_users' )
-    team = relationship('Teams', back_populates='admin_teams')
+#
+# class Admins(Base):
+#     __tablename__ = 'admins'
+#     # id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
+#     team_id = Column(Integer, ForeignKey('teams.team_id'), nullable=False, primary_key=True )
+#     date = Column(TIMESTAMP, default=datetime.datetime.now())
+#     user = relationship('Users', back_populates='admin_users' )
+    # team = relationship('Teams', back_populates='admin_teams')
     # team = relationship('Teams')
     # admin_rang = Column(Integer, not
 
@@ -48,11 +48,13 @@ class Users(Base):
     user_full_name = Column(String, nullable=False)
     username = Column(String, nullable=False)
 
+    team_id = Column(Integer, ForeignKey('teams.team_id'))
+
     permisions = Column(Integer)
     # is_admin = Column(Boolean)
     # admin = relationship('Teams', secondary='admins')
-    admin_users = relationship('Admins', back_populates='user')
-
+    # admin_users = relationship('Admins', back_populates='user')
+    team = relationship('Teams')
 
 
 
@@ -78,7 +80,7 @@ class Teams(Base):
     tournament_id = Column(Integer, ForeignKey('tournaments.tournament_id'), nullable=False)
     tournament = relationship('Tournaments', back_populates='tourn')
     # admin = relationship('Admins')
-    admin_teams = relationship('Admins', back_populates='team')
+    # admin_teams = relationship('Admins', back_populates='team')
 
 class Confirmation(Base):
     __tablename__ = 'confirmation'
@@ -98,7 +100,7 @@ class TeamTournaments(Base):
 
 
 class Permisions(Base):
-    __tablename = 'permisions'
+    __tablename__ = 'permisions'
     permision_id = Column(Integer, primary_key=True)
     description = Column(String(20))
 
