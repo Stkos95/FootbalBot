@@ -90,33 +90,38 @@ async def registration_start(call: types.CallbackQuery, state: FSMContext):
 async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext):
     team_id = int(call.data)
     print(team_id)
+    with Session() as session:
+        statement = select(Users)
+        person_already_in_base = session.execute(statement).scalars().first()
     async with state.proxy() as data:
         data['team_id'] = team_id
         data['team_name'] = [i[1] for i in data.get('teams') if i[0] == team_id][0]
+        data['person'] = person_already_in_base
 
-    with Session() as session:
-        statement = select(Users)
-        person = session.execute(statement).scalars().first()
-    if person:
-        await registration_name_input(call.message, state, person)
+    if person_already_in_base:
+        await registration_name_input(call.message, state)
         await state.finish()
     else:
         await call.message.answer('Введите свое ФИО:')
+
         await state.set_state('not_registered_fio')
 
 
-async def registration_name_input(message: types.Message, state: FSMContext, person=None):
+
+
+
+async def registration_name_input(message: types.Message, state: FSMContext):
     # Возможно добавить проверку на корректность имени.
-    if person:
-        user_full_name = person.user_full_name
-    else:
-        user_full_name = message.text
     username = message.from_user.username
     async with state.proxy() as data:
         user_id = data.get('user_id')
         team_name = data.get('team_name')
         team_id = data.get('team_id')
-
+        person_already_in_base = data.get('person')
+    if person_already_in_base:
+        user_full_name = person_already_in_base.user_full_name
+    else:
+        user_full_name = message.text
     with Session() as session:
         temporary_confirmation = Confirmation(user_id=user_id, team_id=team_id, user_full_name=user_full_name, username=username)
         session.add(temporary_confirmation)
