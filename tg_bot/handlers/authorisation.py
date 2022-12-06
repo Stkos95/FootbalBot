@@ -11,12 +11,28 @@ Session = get_engine_connection()
 MAX_COUNT_ADMINS = 3 # Не используется
 
 
+async def registration(message: types.Message, state: FSMContext):
+    await message.answer("вы выбрали регистрацию!")
+    user_id = message.from_user.id
+    # with Session() as session:
+    #     statement = select(Admins).join(Admins.team).where(Admins.user_id == user_id)
+    #     admin = session.execute(statement).scalars().all()
+    # if admin:
+    #     statement = select(Admins)
+
+
+
+
+
+
+
 async def greeting_funct(message: types.Message, state: FSMContext):
 
     await message.answer('Привет')
     user_id = message.from_user.id
-    # user_id = random.randint(1,1000000) # Убрать после тестирования
+
     with Session() as session:
+
         statement = select(Admins).join(Admins.team).where(Admins.user_id == user_id)
         admin = session.execute(statement).scalars().all()
 
