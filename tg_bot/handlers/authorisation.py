@@ -19,7 +19,8 @@ async def cancel(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
 
 async def registration_callback(call: types.CallbackQuery, state: FSMContext):
-    await call.message.answer("вы выбрали регистрацию!")
+    # await call.message.answer("вы выбрали регистрацию!")
+    await call.message.edit_text('Вы выбрали регистрацию')
     user_id = call.from_user.id
     with Session() as session:
         statement1 = select(Tournaments.tournament_id, Tournaments.name)
@@ -71,6 +72,7 @@ async def registration_start(call: types.CallbackQuery, state: FSMContext):
         teams = session.execute(statement).all()
         kb = InlineKeyboardMarkup()
         [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in teams]
+        kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
         await call.message.answer('Выберите вашу команду:', reply_markup=kb)
 
     await state.set_state('not_registered_team')
@@ -88,17 +90,47 @@ async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext)
     async with state.proxy() as data:
         data['team_id'] = team_id
         data['team_name'] = [i[1] for i in data.get('teams') if i[0] == team_id][0]
-        data['person'] = person_already_in_base
+        # data['person'] = person_already_in_base
 
     if person_already_in_base:
+        await state.update_data(user_full_name=person_already_in_base.user_full_name)
         await registration_name_input(call.message, state)
         await state.finish()
     else:
-        await call.message.answer('Введите свое ФИО:')
+        await call.message.edit_text('Введите свое ФИО:')
+        # await call.message.answer('Введите свое ФИО:')
 
         await state.set_state('not_registered_fio')
 
 
+def new_func(message, state):
+    async with state.proxy() as data:
+        user_id = data.get('user_id')
+        user_full_name = data.get('user_full_name')
+        team_name = data.get('team_name')
+        team_id = data.get('team_id')
+        username = message.from_user.username
+    return user_id, username, user_full_name, team_name, team_id
+
+def send_data_database(message, state):
+
+    user_id, username, user_full_name, team_name, team_id = new_func(message, state)
+    temporary_confirmation = Confirmation(user_id=user_id, team_id=team_id, user_full_name=user_full_name,
+                                          username=username)
+    with Session() as session:
+        session.add(temporary_confirmation)
+        session.commit()
+        row_id = temporary_confirmation.id
+
+        team_admins = session.execute(
+            select(Users).join(Teams).where(and_(Users.team_id == team_id, Users.permisions == 1))).all()
+        print(team_admins)
+        try:
+            session.add(
+                Users(user_id=user_id, user_full_name=user_full_name, username=username, team_id=team_id, permisions=1))
+        except:
+            pass
+        session.commit()
 
 
 
