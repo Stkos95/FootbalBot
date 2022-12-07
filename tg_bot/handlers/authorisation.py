@@ -19,10 +19,17 @@ async def registration_message(message: types.Message, state: FSMContext):
         tournaments = session.execute(statement1).all()
         kb = InlineKeyboardMarkup()
         [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
+        kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
         await message.answer('Вы не авторизованы, нужно вас зарегистрировать. Выберите лигу, где играет ваша команда?',
                              reply_markup=kb)
         await state.set_state('not_registered_1')
         await state.update_data(user_id=user_id)
+
+async def cancel(call: types.CallbackQuery, state: FSMContext):
+    await call.answer()
+    await call.message.answer('Отмена!')
+    await call.message.edit_reply_markup(reply_markup=None)
+    await state.finish()
 
 async def registration_callback(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer("вы выбрали регистрацию!")
@@ -32,6 +39,7 @@ async def registration_callback(call: types.CallbackQuery, state: FSMContext):
         tournaments = session.execute(statement1).all()
         kb = InlineKeyboardMarkup()
         [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
+        kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
         await call.message.answer('Выберите лигу, где играет ваша команда:',
                              reply_markup=kb)
         await state.set_state('not_registered_1')
@@ -149,6 +157,7 @@ async def registration_name_input(message: types.Message, state: FSMContext):
 
 
 def register_greet(dp: Dispatcher):
+    dp.register_callback_query_handler(cancel, text='cancel', state='*')
     dp.register_message_handler(registration_message, text='Регистрация')
     dp.register_callback_query_handler(registration_callback, text='add_team')
     dp.register_message_handler(greeting_funct, commands=['registration'])

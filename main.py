@@ -10,10 +10,9 @@ from tg_bot.handlers.admins_confirm import registration_result
 from tg_bot.handlers.team.my_team import work_with_my_team
 from tg_bot.handlers.income_outcome_templates.templates_messages import registration_answer_template
 from tg_bot.handlers.admin.check_doubles import reg_doubles
-<<<<<<< HEAD
+
 from tg_bot.handlers.admin.add_player import players_request
-=======
->>>>>>> ab8b64b (before devide registration to /registration command)
+
 
 def register_handlers(dp):
     register(dp)
@@ -22,14 +21,12 @@ def register_handlers(dp):
     registration_result(dp)
     work_with_my_team(dp)
     reg_doubles(dp)
-<<<<<<< HEAD
+
     players_request(dp)
 
 def register_all_filters(dp):
     dp.filters_factory.bind(AdminCheck)
-=======
 
->>>>>>> ab8b64b (before devide registration to /registration command)
 
 config = load_config()
 
