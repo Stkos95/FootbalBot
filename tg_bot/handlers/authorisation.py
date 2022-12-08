@@ -6,10 +6,19 @@ from tg_bot.misc.database.db import  get_engine_connection
 from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users
 from aiogram.dispatcher import FSMContext
 from tg_bot.keyboards.inline import admin_kb_confirm_registration
-
+from dataclasses import dataclass
 Session = get_engine_connection()
 MAX_COUNT_ADMINS = 3 # Не используется
 
+
+@dataclass()
+class UserFromBase:
+    user_full_name: str = None
+    team_name: str = None
+    user_id: str = None
+    team_id: str = None
+    username: str = None
+    in_base: bool = False
 
 
 async def cancel(call: types.CallbackQuery, state: FSMContext):
@@ -18,8 +27,8 @@ async def cancel(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup(reply_markup=None)
     await state.finish()
 
+
 async def registration_callback(call: types.CallbackQuery, state: FSMContext):
-    # await call.message.answer("вы выбрали регистрацию!")
     await call.message.edit_text('Вы выбрали регистрацию')
     user_id = call.from_user.id
     with Session() as session:
@@ -41,18 +50,24 @@ async def greeting_funct(message: types.Message, state: FSMContext):
     with Session() as session:
         statement = select(Users).where(Users.user_id == user_id)
         admin = session.execute(statement).scalars().all()
-
+        user = UserFromBase(username=message.from_user.username, user_id=user_id)
+        await state.update_data(admin=user)
         if not admin:
-            kb = ReplyKeyboardMarkup(keyboard=[
+            kb = InlineKeyboardMarkup(inline_keyboard=[
                 [
-                    KeyboardButton(text='Регистрация'),
-                    KeyboardButton(text='Отмена'),
+                    InlineKeyboardButton(text='Регистрация', callback_data='add_team'),
+                    InlineKeyboardButton(text='Отмена', callback_data='cancel'),
                 ]
-            ],resize_keyboard=True)
+            ])
             await message.answer('Вы не зарегистрированы.\nДля регистрации нажмите на кнопку Зарегистрироваться',
                                  reply_markup=kb)
 
         else:
+            user.user_full_name=admin[0].user_full_name,
+            user.in_base=True
+
+
+            # await state.update_data(admin=user)
             answer = ', '.join(i.team.team_name for i in admin)
             kb_my_teams = InlineKeyboardMarkup()
             for team in admin:
@@ -83,90 +98,50 @@ async def registration_start(call: types.CallbackQuery, state: FSMContext):
 # Добавлять ли ограничение по количеству админов?
 async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext):
     team_id = int(call.data)
-    print(team_id)
-    with Session() as session:
-        statement = select(Users)
-        person_already_in_base = session.execute(statement).scalars().first()
     async with state.proxy() as data:
-        data['team_id'] = team_id
-        data['team_name'] = [i[1] for i in data.get('teams') if i[0] == team_id][0]
-        # data['person'] = person_already_in_base
+        data['admin'].team_id = team_id
+        data['admin'].team_name = [i[1] for i in data.get('teams') if i[0] == team_id][0]
+        user = data['admin']
 
-    if person_already_in_base:
-        await state.update_data(user_full_name=person_already_in_base.user_full_name)
-        await registration_name_input(call.message, state)
-        await state.finish()
+    if user.in_base:
+        try:
+            row_id = send_data_database_return_row_id(data['admin'])
+            await send_message_to_admin(call.message, state, data['admin'], row_id)
+        except:
+            await call.message.answer(f'Вы уже являетесь администратором {user.team_name}')
+        finally:
+            await state.finish()
     else:
         await call.message.edit_text('Введите свое ФИО:')
-        # await call.message.answer('Введите свое ФИО:')
-
         await state.set_state('not_registered_fio')
 
+def send_data_database_return_row_id(user):
 
-def new_func(message, state):
-    async with state.proxy() as data:
-        user_id = data.get('user_id')
-        user_full_name = data.get('user_full_name')
-        team_name = data.get('team_name')
-        team_id = data.get('team_id')
-        username = message.from_user.username
-    return user_id, username, user_full_name, team_name, team_id
-
-def send_data_database(message, state):
-
-    user_id, username, user_full_name, team_name, team_id = new_func(message, state)
-    temporary_confirmation = Confirmation(user_id=user_id, team_id=team_id, user_full_name=user_full_name,
-                                          username=username)
+    temporary_confirmation = Confirmation(user_id=user.user_id, team_id=user.team_id, user_full_name=user.user_full_name,
+                                          username=user.username)
     with Session() as session:
         session.add(temporary_confirmation)
         session.commit()
         row_id = temporary_confirmation.id
-
-        team_admins = session.execute(
-            select(Users).join(Teams).where(and_(Users.team_id == team_id, Users.permisions == 1))).all()
-        print(team_admins)
-        try:
-            session.add(
-                Users(user_id=user_id, user_full_name=user_full_name, username=username, team_id=team_id, permisions=1))
-        except:
-            pass
+        session.add(
+            Users(user_id=user.user_id, user_full_name=user.user_full_name, username=user.username, team_id=user.team_id, permisions=1))
         session.commit()
-
-
+    return row_id
 
 async def registration_name_input(message: types.Message, state: FSMContext):
-    # Возможно добавить проверку на корректность имени.
-    username = message.from_user.username
     async with state.proxy() as data:
-        user_id = data.get('user_id')
-        team_name = data.get('team_name')
-        team_id = data.get('team_id')
-        person_already_in_base = data.get('person')
-    if person_already_in_base:
-        user_full_name = person_already_in_base.user_full_name
-    else:
-        user_full_name = message.text
-    with Session() as session:
-        temporary_confirmation = Confirmation(user_id=user_id, team_id=team_id, user_full_name=user_full_name, username=username)
-        session.add(temporary_confirmation)
-        session.commit()
-        row_id = temporary_confirmation.id
-
-        team_admins = session.execute(select(Users).join(Teams).where(and_(Users.team_id == team_id, Users.permisions == 1))).all()
-        print(team_admins)
-        try:
-            session.add(Users(user_id=user_id, user_full_name=user_full_name, username=username, team_id=team_id, permisions=1))
-        except:
-            pass
-        session.commit()
-
+        data['admin'].user_full_name = message.text
+    user = data['admin']
+    row_id = send_data_database_return_row_id(user)
+    await send_message_to_admin(message, state, user, row_id)
     await message.answer('Ваша заявка на администрирование командой отправлена на подтверждение, ожидайте.',)
     await state.finish()
 
-
     # Отправляю сообщение себе/администратору
+async def send_message_to_admin(message, state, user, row_id):
     config = message.bot.get('config')
-    await message.bot.send_message(chat_id=config.admin, text=f'Была отправлена заявка на управление командой {team_name} от {user_full_name} (@{username})!',
+
+    await message.bot.send_message(chat_id=config.admin, text=f'Была отправлена заявка на управление командой {user.team_name} от {user.user_full_name} (@{user.username})!',
                                    reply_markup=admin_kb_confirm_registration(row_id))
     await state.finish()
 
