@@ -3,7 +3,7 @@ from aiogram import types, Dispatcher
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from sqlalchemy import select, and_
 from tg_bot.misc.database.db import  get_engine_connection
-from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users
+from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users, Admins
 from aiogram.dispatcher import FSMContext
 from tg_bot.keyboards.inline import admin_kb_confirm_registration
 from dataclasses import dataclass
@@ -12,13 +12,17 @@ MAX_COUNT_ADMINS = 3 # Не используется
 
 
 @dataclass
-class UserFromBase:
+class UserInfo:
     user_full_name: str = None
-    team_name: str = None
     user_id: str = None
-    team_id: str = None
     username: str = None
     in_base: bool = False
+
+@dataclass
+class AdminData:
+    user: UserInfo
+    team_id: int = None
+    team_name: str = None
 
 
 async def cancel(call: types.CallbackQuery, state: FSMContext):
@@ -30,10 +34,8 @@ async def cancel(call: types.CallbackQuery, state: FSMContext):
 async def greeting_funct(message: types.Message, state: FSMContext):
     await message.answer('Привет')
     with Session() as session:
-        statement = select(Users).where(Users.user_id == message.from_user.id)
-        admin = session.execute(statement).scalars().all()
-        user = UserFromBase(username=message.from_user.username, user_id=message.from_user.id)
-        await state.update_data(admin=user)
+        statement_admin = select(Admins).where(Admins.user_id == message.from_user.id)
+        admin = session.execute(statement_admin).scalars().all()
         if not admin:
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [
@@ -41,12 +43,9 @@ async def greeting_funct(message: types.Message, state: FSMContext):
                     InlineKeyboardButton(text='Отмена', callback_data='cancel'),
                 ]
             ])
-            await message.answer('Вы не зарегистрированы.\nДля регистрации нажмите на кнопку Зарегистрироваться',
+            await message.answer('Вы не являетесь администратором команды.\nДля добавления команды, нажмите "Зарегистрироваться"',
                                  reply_markup=kb)
         else:
-            user.user_full_name=admin[0].user_full_name,
-            user.in_base=True
-
             answer = ', '.join(i.team.team_name for i in admin)
             kb_my_teams = InlineKeyboardMarkup()
             for team in admin:
@@ -56,8 +55,28 @@ async def greeting_funct(message: types.Message, state: FSMContext):
                              f'Выберите действие:',
                              reply_markup=kb_my_teams)
 
+def get_user_data(message):
+    with Session() as session:
+        statement_user = select(Users).where(Users.user_id == int(message.from_user.id))
+        user_from_db = session.execute(statement_user).scalars().first()
+        print(f'{user_from_db=}')
+        user = AdminData(
+            user=UserInfo(
+                user_id=message.from_user.id,
+                username=message.from_user.username
+            )
+        )
+        if user_from_db:
+            user.user.in_base = True
+            user.user.user_full_name = user_from_db.user_full_name
+
+        return user
+
+
 async def registration_callback(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text('Вы выбрали регистрацию')
+    user = get_user_data(call)
+    await state.update_data(admin=user)
     with Session() as session:
         statement1 = select(Tournaments.tournament_id, Tournaments.name)
         tournaments = session.execute(statement1).all()
@@ -91,9 +110,9 @@ async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext)
         data['admin'].team_name = [i[1] for i in data.get('teams') if i[0] == team_id][0]
         user = data['admin']
 
-    if user.in_base:
+    if user.user.in_base:
         try:
-            row_id = send_data_database_return_row_id(data['admin'])
+            row_id = send_confirm_database_return_row_id(user)
             await send_message_to_admin(call.message, state, data['admin'], row_id)
         except:
             await call.message.answer(f'Вы уже являетесь администратором {user.team_name}')
@@ -105,28 +124,41 @@ async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext)
 
 async def registration_name_input(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        data['admin'].user_full_name = message.text
+        data['admin'].user.user_full_name = message.text
     user = data['admin']
-    row_id = send_data_database_return_row_id(user)
+    try:
+        send_user_db(user.user)
+    except:
+        pass
+    row_id = send_confirm_database_return_row_id(user)
     await send_message_to_admin(message, state, user, row_id)
     await message.answer('Ваша заявка на администрирование командой отправлена на подтверждение, ожидайте.',)
     await state.finish()
 
-def send_data_database_return_row_id(user):
-    temporary_confirmation = Confirmation(user_id=user.user_id, team_id=user.team_id,
-                                          user_full_name=user.user_full_name,
-                                          username=user.username)
+def send_confirm_database_return_row_id(user: AdminData):
+    temporary_confirmation = Confirmation(user_id=int(user.user.user_id), team_id=user.team_id,
+                                          user_full_name=user.user.user_full_name,
+                                          username=user.user.username)
     with Session() as session:
         session.add(temporary_confirmation)
         session.commit()
         row_id = temporary_confirmation.id
     return row_id
 
+def send_user_db(user: UserInfo):
+        with Session() as session:
+            user_add = Users(user_id=int(user.user_id),
+                  user_full_name=user.user_full_name,
+                  username=user.username
+                 )
+            session.add(user_add)
+            session.commit()
+
     # Отправляю сообщение себе/администратору
-async def send_message_to_admin(message, state, user, row_id):
+async def send_message_to_admin(message, state, user: AdminData, row_id):
     config = message.bot.get('config')
 
-    await message.bot.send_message(chat_id=config.admin, text=f'Была отправлена заявка на управление командой {user.team_name} от {user.user_full_name} (@{user.username})!',
+    await message.bot.send_message(chat_id=config.admin, text=f'Была отправлена заявка на управление командой {user.team_name} от {user.user.user_full_name} (@{user.user.username})!',
                                    reply_markup=admin_kb_confirm_registration(row_id))
     await state.finish()
 

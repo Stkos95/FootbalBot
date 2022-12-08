@@ -4,12 +4,13 @@ from aiogram.dispatcher import FSMContext
 from tg_bot.misc import joinFootball
 from tg_bot.keyboards.callbackdatas import confirmation_callback
 from tg_bot.misc.database.db import  get_engine_connection
-from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users
+from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users, Admins
 
 Session = get_engine_connection()
 # joinFootball.prepare_teams()
 
 async def registration_get_result_confirm(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
+
     row_id = callback_data.get('bd_data')
     await call.answer()
     await call.message.answer('Вы подтвердили!!')
@@ -19,14 +20,12 @@ async def registration_get_result_confirm(call: types.CallbackQuery, state: FSMC
         result = session.execute(statement).scalars().first()
         print(result.user_id)
         session.add(
-            Users(user_id=result.user_id, user_full_name=result.user_full_name, username=result.username,
-                  team_id=result.team_id, permisions=1))
+            Admins(user_id=result.user_id,
+                  team_id=result.team_id,))
         session.commit()
-        # session.add(Admins(user_id=result.user_id, team_id=result.team_id))
+
         session.commit()
         await call.bot.send_message(result.user_id,'Вашу заявку подтвердили, можете продолжить пользоваться ботом!')
-
-
 
 async def registration_get_result_reject(call:types.CallbackQuery, state:FSMContext, callback_data: dict):
     row_id = callback_data.get('bd_data')
@@ -36,18 +35,6 @@ async def registration_get_result_reject(call:types.CallbackQuery, state:FSMCont
         result = session.execute(statement).scalars().first()
     await call.message.answer(f'Вы Отказали {result.user_full_name}!!')
     await call.message.delete_reply_markup()
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def registration_result(dp: Dispatcher):
