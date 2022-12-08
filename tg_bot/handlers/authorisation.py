@@ -36,6 +36,7 @@ async def greeting_funct(message: types.Message, state: FSMContext):
     with Session() as session:
         statement_admin = select(Admins).where(Admins.user_id == message.from_user.id)
         admin = session.execute(statement_admin).scalars().all()
+        await state.update_data(admin_data=admin)
         if not admin:
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [
@@ -46,6 +47,7 @@ async def greeting_funct(message: types.Message, state: FSMContext):
             await message.answer('Вы не являетесь администратором команды.\nДля добавления команды, нажмите "Зарегистрироваться"',
                                  reply_markup=kb)
         else:
+            await state.update_data(admin_data=admin)
             answer = ', '.join(i.team.team_name for i in admin)
             kb_my_teams = InlineKeyboardMarkup()
             for team in admin:
@@ -59,7 +61,6 @@ def get_user_data(message):
     with Session() as session:
         statement_user = select(Users).where(Users.user_id == int(message.from_user.id))
         user_from_db = session.execute(statement_user).scalars().first()
-        print(f'{user_from_db=}')
         user = AdminData(
             user=UserInfo(
                 user_id=message.from_user.id,
@@ -106,18 +107,19 @@ async def registration_start(call: types.CallbackQuery, state: FSMContext):
 async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext):
     team_id = int(call.data)
     async with state.proxy() as data:
+        admin = [i for i in data.get('admin_data') if i.team_id == team_id]
         data['admin'].team_id = team_id
         data['admin'].team_name = [i[1] for i in data.get('teams') if i[0] == team_id][0]
         user = data['admin']
+    if admin:
+        await call.message.answer(f'Вы уже являетесь администратором {user.team_name}')
+        return
+
 
     if user.user.in_base:
-        try:
-            row_id = send_confirm_database_return_row_id(user)
-            await send_message_to_admin(call.message, state, data['admin'], row_id)
-        except:
-            await call.message.answer(f'Вы уже являетесь администратором {user.team_name}')
-        finally:
-            await state.finish()
+        row_id = send_confirm_database_return_row_id(user)
+        await send_message_to_admin(call.message, state, data['admin'], row_id)
+        await state.finish()
     else:
         await call.message.edit_text('Введите свое ФИО:')
         await state.set_state('not_registered_fio')
