@@ -4,7 +4,7 @@ from aiogram.dispatcher import FSMContext
 from tg_bot.misc import joinFootball
 from tg_bot.keyboards.callbackdatas import confirmation_callback
 from tg_bot.misc.database.db import  get_engine_connection
-from tg_bot.misc.database.models import Tournaments, Teams, Confirmation
+from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users
 
 Session = get_engine_connection()
 # joinFootball.prepare_teams()
@@ -18,7 +18,11 @@ async def registration_get_result_confirm(call: types.CallbackQuery, state: FSMC
         statement = select(Confirmation).where(Confirmation.id == int(row_id))
         result = session.execute(statement).scalars().first()
         print(result.user_id)
-        session.add(Admins(user_id=result.user_id, team_id=result.team_id))
+        session.add(
+            Users(user_id=result.user_id, user_full_name=result.user_full_name, username=result.username,
+                  team_id=result.team_id, permisions=1))
+        session.commit()
+        # session.add(Admins(user_id=result.user_id, team_id=result.team_id))
         session.commit()
         await call.bot.send_message(result.user_id,'Вашу заявку подтвердили, можете продолжить пользоваться ботом!')
 

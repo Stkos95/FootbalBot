@@ -120,10 +120,6 @@ def send_data_database_return_row_id(user):
         session.add(temporary_confirmation)
         session.commit()
         row_id = temporary_confirmation.id
-        session.add(
-            Users(user_id=user.user_id, user_full_name=user.user_full_name, username=user.username,
-                  team_id=user.team_id, permisions=1))
-        session.commit()
     return row_id
 
     # Отправляю сообщение себе/администратору
