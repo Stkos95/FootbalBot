@@ -11,7 +11,7 @@ Session = get_engine_connection()
 MAX_COUNT_ADMINS = 3 # Не используется
 
 
-@dataclass()
+@dataclass
 class UserFromBase:
     user_full_name: str = None
     team_name: str = None
@@ -27,30 +27,12 @@ async def cancel(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup(reply_markup=None)
     await state.finish()
 
-
-async def registration_callback(call: types.CallbackQuery, state: FSMContext):
-    await call.message.edit_text('Вы выбрали регистрацию')
-    user_id = call.from_user.id
-    with Session() as session:
-        statement1 = select(Tournaments.tournament_id, Tournaments.name)
-        tournaments = session.execute(statement1).all()
-        kb = InlineKeyboardMarkup()
-        [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
-        kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
-        await call.message.answer('Выберите лигу, где играет ваша команда:',
-                             reply_markup=kb)
-        await state.set_state('not_registered_1')
-        await state.update_data(user_id=user_id)
-        await state.update_data(is_old=True)
-
-
 async def greeting_funct(message: types.Message, state: FSMContext):
     await message.answer('Привет')
-    user_id = message.from_user.id
     with Session() as session:
-        statement = select(Users).where(Users.user_id == user_id)
+        statement = select(Users).where(Users.user_id == message.from_user.id)
         admin = session.execute(statement).scalars().all()
-        user = UserFromBase(username=message.from_user.username, user_id=user_id)
+        user = UserFromBase(username=message.from_user.username, user_id=message.from_user.id)
         await state.update_data(admin=user)
         if not admin:
             kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -61,13 +43,10 @@ async def greeting_funct(message: types.Message, state: FSMContext):
             ])
             await message.answer('Вы не зарегистрированы.\nДля регистрации нажмите на кнопку Зарегистрироваться',
                                  reply_markup=kb)
-
         else:
             user.user_full_name=admin[0].user_full_name,
             user.in_base=True
 
-
-            # await state.update_data(admin=user)
             answer = ', '.join(i.team.team_name for i in admin)
             kb_my_teams = InlineKeyboardMarkup()
             for team in admin:
@@ -77,10 +56,21 @@ async def greeting_funct(message: types.Message, state: FSMContext):
                              f'Выберите действие:',
                              reply_markup=kb_my_teams)
 
+async def registration_callback(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_text('Вы выбрали регистрацию')
+    with Session() as session:
+        statement1 = select(Tournaments.tournament_id, Tournaments.name)
+        tournaments = session.execute(statement1).all()
+        kb = InlineKeyboardMarkup()
+        [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
+        kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
+        await call.message.answer('Выберите лигу, где играет ваша команда:',
+                             reply_markup=kb)
+        await state.set_state('not_registered_1')
+
 
 async def registration_start(call: types.CallbackQuery, state: FSMContext):
     tournament_id = call.data
-    print(tournament_id)
     await call.answer()
     with Session() as session:
         statement = select(Teams.team_id, Teams.team_name).where(Teams.tournament_id == tournament_id)
@@ -92,8 +82,6 @@ async def registration_start(call: types.CallbackQuery, state: FSMContext):
 
     await state.set_state('not_registered_team')
     await state.update_data(teams=teams)
-
-
 
 # Добавлять ли ограничение по количеству админов?
 async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext):
@@ -115,19 +103,6 @@ async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext)
         await call.message.edit_text('Введите свое ФИО:')
         await state.set_state('not_registered_fio')
 
-def send_data_database_return_row_id(user):
-
-    temporary_confirmation = Confirmation(user_id=user.user_id, team_id=user.team_id, user_full_name=user.user_full_name,
-                                          username=user.username)
-    with Session() as session:
-        session.add(temporary_confirmation)
-        session.commit()
-        row_id = temporary_confirmation.id
-        session.add(
-            Users(user_id=user.user_id, user_full_name=user.user_full_name, username=user.username, team_id=user.team_id, permisions=1))
-        session.commit()
-    return row_id
-
 async def registration_name_input(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['admin'].user_full_name = message.text
@@ -136,6 +111,20 @@ async def registration_name_input(message: types.Message, state: FSMContext):
     await send_message_to_admin(message, state, user, row_id)
     await message.answer('Ваша заявка на администрирование командой отправлена на подтверждение, ожидайте.',)
     await state.finish()
+
+def send_data_database_return_row_id(user):
+    temporary_confirmation = Confirmation(user_id=user.user_id, team_id=user.team_id,
+                                          user_full_name=user.user_full_name,
+                                          username=user.username)
+    with Session() as session:
+        session.add(temporary_confirmation)
+        session.commit()
+        row_id = temporary_confirmation.id
+        session.add(
+            Users(user_id=user.user_id, user_full_name=user.user_full_name, username=user.username,
+                  team_id=user.team_id, permisions=1))
+        session.commit()
+    return row_id
 
     # Отправляю сообщение себе/администратору
 async def send_message_to_admin(message, state, user, row_id):
