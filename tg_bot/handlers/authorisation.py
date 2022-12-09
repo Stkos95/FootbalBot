@@ -1,11 +1,13 @@
-import random
+
 from aiogram import types, Dispatcher
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import select, and_
 from tg_bot.misc.database.db import  get_engine_connection
 from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users, Admins
 from aiogram.dispatcher import FSMContext
 from tg_bot.keyboards.inline import admin_kb_confirm_registration
+from tg_bot.keyboards.callbackdatas import my_team_callback
+
 from dataclasses import dataclass
 Session = get_engine_connection()
 MAX_COUNT_ADMINS = 3 # Не используется
@@ -23,19 +25,6 @@ class AdminData:
     user: UserInfo
     team_id: int = None
     team_name: str = None
-
-# async def ask_name_if_not_in_base(call: types.CallbackQuery, state: FSMContext):
-    # with Session() as session:
-    #     statement_user = select(Users).where(Users.user_id == int(call.message.from_user.id))
-    #     user_from_db = session.execute(statement_user).scalars().first()
-    #     user = AdminData(
-    #         user=UserInfo(
-    #             user_id=call.message.from_user.id,
-    #             username=call.message.from_user.username
-    #         )
-    #     )
-    #     if user_from_db:
-
 
 async def cancel(call: types.CallbackQuery, state: FSMContext):
     await call.answer()
@@ -63,7 +52,7 @@ async def greeting_funct(message: types.Message, state: FSMContext):
             answer = ', '.join(i.team.team_name for i in admin)
             kb_my_teams = InlineKeyboardMarkup()
             for team in admin:
-                kb_my_teams.add(InlineKeyboardButton(text=team.team.team_name, callback_data=team.team_id))
+                kb_my_teams.add(InlineKeyboardButton(text=team.team.team_name, callback_data=my_team_callback.new(team_id=team.team_id)))
             kb_my_teams.insert(InlineKeyboardButton(text='Добавить команду➕', callback_data='add_team'))
             await message.answer(f'Вы администратор команды "{answer}"\n'
                              f'Выберите действие:',
@@ -82,7 +71,6 @@ def get_user_data(message):
         if user_from_db:
             user.user.in_base = True
             user.user.user_full_name = user_from_db.user_full_name
-
         return user
 
 
@@ -149,18 +137,6 @@ async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext)
     await call.message.answer('Ваша заявка на администрирование командой отправлена на подтверждение, ожидайте.', )
     await state.finish()
 
-# async def registration_name_input(message: types.Message, state: FSMContext):
-#     async with state.proxy() as data:
-#         data['admin'].user.user_full_name = message.text
-#     user = data['admin']
-#     try:
-#         send_user_db(user.user)
-#     except:
-#         pass
-#     row_id = send_confirm_database_return_row_id(user)
-#     await send_message_to_admin(message, state, user, row_id)
-#
-#     await state.finish()
 
 def send_confirm_database_return_row_id(user: AdminData):
     temporary_confirmation = Confirmation(user_id=int(user.user.user_id), team_id=user.team_id,
@@ -181,14 +157,13 @@ def send_user_db(user: UserInfo):
             session.add(user_add)
             session.commit()
 
-    # Отправляю сообщение себе/администратору
+
 async def send_message_to_admin(message, state, user: AdminData, row_id):
     config = message.bot.get('config')
 
     await message.bot.send_message(chat_id=config.admin, text=f'Была отправлена заявка на управление командой {user.team_name} от {user.user.user_full_name} (@{user.user.username})!',
                                    reply_markup=admin_kb_confirm_registration(row_id))
     await state.finish()
-
 
 
 def register_greet(dp: Dispatcher):
@@ -198,5 +173,4 @@ def register_greet(dp: Dispatcher):
     dp.register_message_handler(greeting_funct, commands=['registration'])
     dp.register_callback_query_handler(registration_start, state='not_registered_1')
     dp.register_callback_query_handler(registration_team_chocen, state='not_registered_team')
-    # dp.register_message_handler(registration_name_input, state='not_registered_fio')
 
