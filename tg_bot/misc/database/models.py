@@ -104,21 +104,3 @@ class Permisions(Base):
     __tablename__ = 'permisions'
     permision_id = Column(Integer, primary_key=True)
     description = Column(String(20))
-
-
-
-# from sqlalchemy import create_engine, select
-# from sqlalchemy.orm import sessionmaker
-#
-# URLDATABASE = f'postgresql+psycopg2://konstantin:123321@localhost:5432/men'
-# def get_engine_connection(URLDATABASE=URLDATABASE):
-#     engine = create_engine(URLDATABASE, future=True)
-#     Base.metadata.create_all(engine)
-#     session = sessionmaker(engine, future=True)
-#     return session
-#
-#
-# Session = get_engine_connection()
-# with Session() as session:
-#     res = session.execute(select(Admins)).scalars().all()
-#     print(res[0].metadata.row)

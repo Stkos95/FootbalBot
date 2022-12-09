@@ -24,6 +24,18 @@ class AdminData:
     team_id: int = None
     team_name: str = None
 
+# async def ask_name_if_not_in_base(call: types.CallbackQuery, state: FSMContext):
+    # with Session() as session:
+    #     statement_user = select(Users).where(Users.user_id == int(call.message.from_user.id))
+    #     user_from_db = session.execute(statement_user).scalars().first()
+    #     user = AdminData(
+    #         user=UserInfo(
+    #             user_id=call.message.from_user.id,
+    #             username=call.message.from_user.username
+    #         )
+    #     )
+    #     if user_from_db:
+
 
 async def cancel(call: types.CallbackQuery, state: FSMContext):
     await call.answer()
@@ -78,13 +90,30 @@ async def registration_callback(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text('Вы выбрали регистрацию')
     user = get_user_data(call)
     await state.update_data(admin=user)
+    if not user.user.in_base:
+
+        await call.message.answer('Введите свое ФИО:')
+        await state.set_state('not_registered_fio')
+    else:
+        await get_list_tournaments(call.message, state)
+
+
+async def registration_fio(message: types.Message,state: FSMContext):
+    async with state.proxy() as data:
+        data['admin'].user.user_full_name = message.text
+        user = data.get('admin')
+    send_user_db(user.user)
+    await get_list_tournaments(message, state)
+
+
+async def get_list_tournaments(message: types.Message, state: FSMContext):
     with Session() as session:
         statement1 = select(Tournaments.tournament_id, Tournaments.name)
         tournaments = session.execute(statement1).all()
         kb = InlineKeyboardMarkup()
         [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
         kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
-        await call.message.answer('Выберите лигу, где играет ваша команда:',
+        await message.answer('Выберите лигу, где играет ваша команда:',
                              reply_markup=kb)
         await state.set_state('not_registered_1')
 
@@ -115,27 +144,23 @@ async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext)
         await call.message.answer(f'Вы уже являетесь администратором {user.team_name}')
         return
 
-
-    if user.user.in_base:
-        row_id = send_confirm_database_return_row_id(user)
-        await send_message_to_admin(call.message, state, data['admin'], row_id)
-        await state.finish()
-    else:
-        await call.message.edit_text('Введите свое ФИО:')
-        await state.set_state('not_registered_fio')
-
-async def registration_name_input(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['admin'].user.user_full_name = message.text
-    user = data['admin']
-    try:
-        send_user_db(user.user)
-    except:
-        pass
     row_id = send_confirm_database_return_row_id(user)
-    await send_message_to_admin(message, state, user, row_id)
-    await message.answer('Ваша заявка на администрирование командой отправлена на подтверждение, ожидайте.',)
+    await send_message_to_admin(call.message, state, data['admin'], row_id)
+    await call.message.answer('Ваша заявка на администрирование командой отправлена на подтверждение, ожидайте.', )
     await state.finish()
+
+# async def registration_name_input(message: types.Message, state: FSMContext):
+#     async with state.proxy() as data:
+#         data['admin'].user.user_full_name = message.text
+#     user = data['admin']
+#     try:
+#         send_user_db(user.user)
+#     except:
+#         pass
+#     row_id = send_confirm_database_return_row_id(user)
+#     await send_message_to_admin(message, state, user, row_id)
+#
+#     await state.finish()
 
 def send_confirm_database_return_row_id(user: AdminData):
     temporary_confirmation = Confirmation(user_id=int(user.user.user_id), team_id=user.team_id,
@@ -168,9 +193,10 @@ async def send_message_to_admin(message, state, user: AdminData, row_id):
 
 def register_greet(dp: Dispatcher):
     dp.register_callback_query_handler(cancel, text='cancel', state='*')
+    dp.register_message_handler(registration_fio , state='not_registered_fio')
     dp.register_callback_query_handler(registration_callback, text='add_team')
     dp.register_message_handler(greeting_funct, commands=['registration'])
     dp.register_callback_query_handler(registration_start, state='not_registered_1')
     dp.register_callback_query_handler(registration_team_chocen, state='not_registered_team')
-    dp.register_message_handler(registration_name_input, state='not_registered_fio')
+    # dp.register_message_handler(registration_name_input, state='not_registered_fio')
 
