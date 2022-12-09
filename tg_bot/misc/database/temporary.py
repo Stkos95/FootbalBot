@@ -1,2 +1,2 @@
 from .models import Base
-from .models import Users, Tournaments, Teams, Confirmation
+from .models import Admins, Users, Tournaments, Teams, Confirmation

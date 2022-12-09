@@ -21,12 +21,10 @@ def register_handlers(dp):
     registration_result(dp)
     work_with_my_team(dp)
     reg_doubles(dp)
-
     players_request(dp)
 
 def register_all_filters(dp):
     dp.filters_factory.bind(AdminCheck)
-
 
 config = load_config()
 
