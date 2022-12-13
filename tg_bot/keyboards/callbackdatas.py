@@ -6,4 +6,5 @@ team_callback = CallbackData('teams','name')
 
 confirmation_callback = CallbackData('confirmation', 'result', 'bd_data')
 
-my_team_callback = CallbackData('teams', 'team_id')
+team_choice_callback = CallbackData('teams', 'team_id')
+my_team_callback = CallbackData('type', 'topic' ,'team_id')

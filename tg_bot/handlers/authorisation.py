@@ -6,7 +6,7 @@ from tg_bot.misc.database.db import  get_engine_connection
 from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users, Admins
 from aiogram.dispatcher import FSMContext
 from tg_bot.keyboards.inline import admin_kb_confirm_registration
-from tg_bot.keyboards.callbackdatas import my_team_callback
+from tg_bot.keyboards.callbackdatas import team_choice_callback
 
 from dataclasses import dataclass
 Session = get_engine_connection()
@@ -52,7 +52,7 @@ async def greeting_funct(message: types.Message, state: FSMContext):
             answer = ', '.join(i.team.team_name for i in admin)
             kb_my_teams = InlineKeyboardMarkup()
             for team in admin:
-                kb_my_teams.add(InlineKeyboardButton(text=team.team.team_name, callback_data=my_team_callback.new(team_id=team.team_id)))
+                kb_my_teams.add(InlineKeyboardButton(text=team.team.team_name, callback_data=team_choice_callback.new(team_id=team.team_id)))
             kb_my_teams.insert(InlineKeyboardButton(text='Добавить команду➕', callback_data='add_team'))
             await message.answer(f'Вы администратор команды "{answer}"\n'
                              f'Выберите действие:',

@@ -45,7 +45,7 @@ def load_config():
         ),
         joinsport=Joinsport(
             token=env.str('TOKEN_MEN'),
-            # token=env.str('TOKEN_MEN'),
+            # token=env.str('TOKEN_WOMEN'),
             url=env.str('URL_JOINSPORT')
         )
     )
