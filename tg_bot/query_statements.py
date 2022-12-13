@@ -3,6 +3,33 @@ import requests
 import json
 conf = load_config()
 
+
+# QUERY_ROUND_ALL_ROUNDS = ''' query
+#          frontend ($filter: RoundFilterInput)  {
+#             frontend {
+#                 rounds(first: 1000, filters: {tournament_id: 1026113}) {
+#                     data{
+#                         round_id
+#                         }
+#                     }
+#                 }
+#             }
+#
+#             '''
+
+QUERY_ROUND_ALL_ROUNDS = ''' query
+         frontend ($filter: RoundFilterInput)  {
+            frontend {
+                rounds(first: 1000, filters: $filter) {
+                    data{
+                        round_id
+                        }
+                    }
+                } 
+            }
+
+            '''
+
 QUERY_ROUND = ''' query
          frontend ($round_id: ID!) {
             frontend {
@@ -15,7 +42,7 @@ QUERY_ROUND = ''' query
 
                     calendar{
                         match_id
-                        tour
+                        
                         number
                         team1{
                             full_name
@@ -39,7 +66,7 @@ QUERY_TOURNAMENT = '''
         query frontend($tournament_id: ID!) {
         frontend {
             tournament(tournament_id:$tournament_id){
-
+                
                 applications{
                     status
                     team{
@@ -87,6 +114,8 @@ query frontend {
                     tournament_id
                     full_name
                     is_published
+                    start_dt
+                    end_dt
                 }
             }
         } 
@@ -147,6 +176,12 @@ def get_query(query,token, **args):
     query_result = get_data(query, token, var=var)['data']['frontend']
     return query_result
 
-d = get_query(QUERY_APPLICATION, conf.joinsport.token, tournament_id=1025285, team_id=1203706)
 
-from pprint import pprint
+def get_query_test(query,token, **args):
+    var = args
+    query_result = get_data(query, token, var=var)
+    return query_result
+
+# d = get_query(QUERY_APPLICATION, conf.joinsport.token, tournament_id=1025285, team_id=1203706)
+#
+# r = get_query_test(QUERY_ROUND, conf.joinsport.token, round_id=1045700)

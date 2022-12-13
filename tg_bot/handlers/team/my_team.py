@@ -9,6 +9,9 @@ from tg_bot.keyboards.inline import admin_kb_confirm_registration
 
 from tg_bot.misc.image_processing.get_list_teams import process_players
 from tg_bot.misc.doubles.join_api import get_not_requested_players
+from tg_bot.misc.image_processing.get_list_teams import get_tournaments_for_concrete_team
+
+from tg_bot.keyboards.callbackdatas import team_choice_callback, my_team_callback
 
 
 Session = get_engine_connection()
@@ -17,32 +20,28 @@ Session = get_engine_connection()
 
 
 
-async def my_team(call: types.CallbackQuery, state: FSMContext):
+async def my_team(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
+    team_id = callback_data.get('team_id')
     await call.message.answer('Выберите что вас интересует:', reply_markup=InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text='Состав', callback_data='squad'),
-                InlineKeyboardButton(text='Турниры', callback_data='tournaments')
+                InlineKeyboardButton(text='Состав', callback_data=my_team_callback.new(topic='squad', team_id=team_id)),
+                InlineKeyboardButton(text='Турниры', callback_data=my_team_callback.new(topic='tournaments', team_id=team_id))
             ]
         ]
     ))
 
 
 
-async def get_my_squad(call: types.CallbackQuery, state: FSMContext):
-    user_id = call.from_user.id
+async def get_my_squad(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
+    team_id = callback_data.get('team_id')
     await call.answer()
     with Session() as session:
-        # statement = select(Admins).join(Admins.team).where(Admins.user_id == user_id)
-        # admin = session.execute(statement).scalars().first()
-        statement = select(Admins).where(Admins.user_id == user_id)
-        admin = session.execute(statement).scalars().first()
-
-        team_id = admin.team_id
         players = process_players(team_id)
         print(players)
+    await state.update_data(team_players=players)
     answer = 'Список игроков:\n'
-    text = [f"{indx} - {player.get('name')}" for indx, player in enumerate(players.values())]
+    text = [f"{indx + 1} - {player.get('name')}" for indx, player in enumerate(players.values())]
     answer += '\n'.join(text)
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -55,13 +54,20 @@ async def get_my_squad(call: types.CallbackQuery, state: FSMContext):
 
 
 
-async def get_my_tournaments(call: types.CallbackQuery, state: FSMContext):
-    await call.message.answer('Пока работает для мини-футбола 2022/23')
+async def get_my_tournaments(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await call.answer()
+    team_id = int(callback_data.get('team_id'))
+    res = get_tournaments_for_concrete_team(team_id)
+    kb = InlineKeyboardMarkup()
+    print(res)
+    for tournament in res:
+        kb.insert(InlineKeyboardButton(text=res.get(tournament), callback_data=f'tournament:{tournament}'))
+    await call.message.answer('Команда учавствует в указанных турнирах:', reply_markup=kb)
 
 
 
 
 def work_with_my_team(dp: Dispatcher):
-    dp.register_callback_query_handler(my_team, text='my_team')
-    dp.register_callback_query_handler(get_my_squad, text='squad')
+    dp.register_callback_query_handler(my_team, team_choice_callback.filter())
+    dp.register_callback_query_handler(get_my_squad, my_team_callback.filter(topic='squad'))
+    dp.register_callback_query_handler(get_my_tournaments, my_team_callback.filter(topic='tournaments'))
