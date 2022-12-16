@@ -123,6 +123,23 @@ query frontend {
 
 '''
 
+QUERY_ALL_TEAMS = '''
+query frontend {
+        frontend {
+            teams(first:100000){
+                data{
+                    team_id
+                    full_name
+                    
+                    
+                    
+                }
+            }
+        } 
+    }
+
+'''
+
 
 QUERY_APPLICATION = ''' query
  frontend($team_id: ID!, $tournament_id: ID!)  {

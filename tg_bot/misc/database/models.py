@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy import Integer, String, Column, Sequence, ForeignKey, DATETIME, TIMESTAMP, Boolean
+from sqlalchemy import Integer, String, Column, Sequence, ForeignKey, DATETIME, TIMESTAMP, Boolean,Date
 import datetime
 
 Base = declarative_base()
@@ -30,16 +30,32 @@ class Tournaments(Base):
     __tablename__ = 'tournaments'
     tournament_id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    rangs = Column(Integer, nullable=False)
-    tourn = relationship('Teams', back_populates='tournament')
+    start_date = Column(Date)
+    end_date = Column(Date)
+    # rangs = Column(Integer, nullable=False)
+    # tourn = relationship('Teams', back_populates='tournament')
+
+class Rounds(Base):
+    __tablename__ = 'rounds'
+    round_id = Column(Integer, primary_key=True)
+    round_name = Column(String, nullable=False)
+    tournament_id = Column(Integer, ForeignKey('tournaments.tournament_id'))
+    tournament = relationship('Tournaments')
+
+# class TeamApplications(Base):
+#     __tablename__ = 'team_applications'
+#     team_id = Column(Integer, ForeignKey('teams.team_id'), primary_key=True)
+#     team = relationship('Teams')
+#     # tournament_id = Column(Integer,ForeignKey('tournaments.tournament_id'), primary_key=True)
+#     # # rangs = Column(Integer, nullable=False)
+#     # tourn = relationship('Teams', back_populates='tournament')
 
 class Teams(Base):
     __tablename__ = 'teams'
-
     team_id = Column(Integer, primary_key=True)
     team_name = Column(String, nullable=False)
-    tournament_id = Column(Integer, ForeignKey('tournaments.tournament_id'), nullable=False)
-    tournament = relationship('Tournaments', back_populates='tourn')
+    # # tournament_id = Column(Integer, ForeignKey('tournaments.tournament_id'), nullable=False)
+    # # tournament = relationship('Tournaments', back_populates='tourn')
     admin_teams = relationship('Admins', back_populates='team')
 
 class Confirmation(Base):
