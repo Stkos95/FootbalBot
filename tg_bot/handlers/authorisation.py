@@ -11,7 +11,7 @@ from tg_bot.keyboards.callbackdatas import team_choice_callback
 from dataclasses import dataclass
 Session = get_engine_connection()
 MAX_COUNT_ADMINS = 3 # Не используется
-
+regular_tournaments = (1025285, 1026113)
 
 @dataclass
 class UserInfo:
@@ -79,7 +79,6 @@ async def registration_callback(call: types.CallbackQuery, state: FSMContext):
     user = get_user_data(call)
     await state.update_data(admin=user)
     if not user.user.in_base:
-
         await call.message.answer('Введите свое ФИО:')
         await state.set_state('not_registered_fio')
     else:
@@ -101,9 +100,13 @@ async def get_list_tournaments(message: types.Message, state: FSMContext):
         kb = InlineKeyboardMarkup()
         [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
         kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
-        await message.answer('Выберите лигу, где играет ваша команда:',
+        # await message.answer('Выберите лигу, где играет ваша команда:',
+        #                      reply_markup=kb)
+        await message.answer('Турнир, где играет ваша команда:',
                              reply_markup=kb)
         await state.set_state('not_registered_1')
+
+# async def get_futsal_rounds(call: types.CallbackQuery, state: FSMContext):
 
 
 async def registration_start(call: types.CallbackQuery, state: FSMContext):

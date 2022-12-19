@@ -1,5 +1,6 @@
 from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy import Integer, String, Column, Sequence, ForeignKey, DATETIME, TIMESTAMP, Boolean,Date
+from sqlalchemy import Integer, String, Column, Sequence, ForeignKey, DATETIME, TIMESTAMP, Boolean, Date, \
+    ForeignKeyConstraint
 import datetime
 
 Base = declarative_base()
@@ -29,26 +30,21 @@ class Users(Base):
 class Tournaments(Base):
     __tablename__ = 'tournaments'
     tournament_id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    round_id = Column(Integer, primary_key=True)
+    name_tournament = Column(String, nullable=False)
+    name_round = Column(String, nullable=False)
     start_date = Column(Date)
     end_date = Column(Date)
     # rangs = Column(Integer, nullable=False)
     # tourn = relationship('Teams', back_populates='tournament')
 
-class Rounds(Base):
-    __tablename__ = 'rounds'
-    round_id = Column(Integer, primary_key=True)
-    round_name = Column(String, nullable=False)
-    tournament_id = Column(Integer, ForeignKey('tournaments.tournament_id'))
-    tournament = relationship('Tournaments')
+# class Rounds(Base):
+#     __tablename__ = 'rounds'
+#     round_id = Column(Integer, primary_key=True)
+#     round_name = Column(String, nullable=False)
+#     tournament_id = Column(Integer, ForeignKey('tournaments.tournament_id'))
+#     tournament = relationship('Tournaments')
 
-# class TeamApplications(Base):
-#     __tablename__ = 'team_applications'
-#     team_id = Column(Integer, ForeignKey('teams.team_id'), primary_key=True)
-#     team = relationship('Teams')
-#     # tournament_id = Column(Integer,ForeignKey('tournaments.tournament_id'), primary_key=True)
-#     # # rangs = Column(Integer, nullable=False)
-#     # tourn = relationship('Teams', back_populates='tournament')
 
 class Teams(Base):
     __tablename__ = 'teams'
@@ -68,8 +64,20 @@ class Confirmation(Base):
 
 class TeamTournaments(Base):
     __tablename__ = 'teams_application'
-    team_id = Column(Integer, primary_key=True)
-    tournament_id = Column(Integer, primary_key=True)
+    # team_id = Column(Integer, ForeignKey('teams.team_id'), primary_key=True)
+    # tournament_id = Column(Integer, ForeignKey('tournaments.tournament_id'), primary_key=True)
+    # round_id = Column(Integer, ForeignKey('tournaments.round_id'), primary_key=True, )
+    team_id = Column(Integer,ForeignKey('teams.team_id'), primary_key=True)
+    tournament_id = Column(Integer,  primary_key=True)
+    round_id = Column(Integer,  primary_key=True, )
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ("tournament_id", "round_id"), ("tournaments.tournament_id", "tournaments.round_id")
+        ),)
+    tournament = relationship('Tournaments')
+    # tournament = relationship('Tournaments')
+    # team = relationship('Teams')
+
 
 class Permisions(Base):
     __tablename__ = 'permisions'
