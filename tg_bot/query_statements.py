@@ -23,6 +23,7 @@ QUERY_ROUND_ALL_ROUNDS = ''' query
                 rounds(first: 1000, filters: $filter) {
                     data{
                         round_id
+                        name
                         }
                     }
                 } 
