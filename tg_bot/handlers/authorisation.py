@@ -1,9 +1,9 @@
 
 from aiogram import types, Dispatcher
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, distinct
 from tg_bot.misc.database.db import  get_engine_connection
-from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users, Admins
+from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users, Admins, TeamTournaments
 from aiogram.dispatcher import FSMContext
 from tg_bot.keyboards.inline import admin_kb_confirm_registration
 from tg_bot.keyboards.callbackdatas import team_choice_callback
@@ -37,7 +37,7 @@ async def greeting_funct(message: types.Message, state: FSMContext):
     with Session() as session:
         statement_admin = select(Admins).where(Admins.user_id == message.from_user.id)
         admin = session.execute(statement_admin).scalars().all()
-        await state.update_data(admin_data=admin)
+
         if not admin:
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [
@@ -95,8 +95,9 @@ async def registration_fio(message: types.Message,state: FSMContext):
 
 async def get_list_tournaments(message: types.Message, state: FSMContext):
     with Session() as session:
-        statement1 = select(Tournaments.tournament_id, Tournaments.name)
+        statement1 = select(distinct(Tournaments.tournament_id), Tournaments.name_tournament)
         tournaments = session.execute(statement1).all()
+        print(tournaments)
         kb = InlineKeyboardMarkup()
         [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
         kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
@@ -104,19 +105,39 @@ async def get_list_tournaments(message: types.Message, state: FSMContext):
         #                      reply_markup=kb)
         await message.answer('Турнир, где играет ваша команда:',
                              reply_markup=kb)
+        await state.set_state('not_registered_rounds')
+
+
+async def get_list_rounds(call: types.CallbackQuery, state: FSMContext):
+    tournament_id = int(call.data)
+    await call.answer()
+    with Session() as session:
+        statement = select(Tournaments.round_id, Tournaments.name_round).where(Tournaments.tournament_id == tournament_id)
+        rounds = session.execute(statement).all()
+        kb = InlineKeyboardMarkup()
+        [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in rounds]
+        await call.message.answer('Лига, где играет ваша команда:',
+                             reply_markup=kb)
         await state.set_state('not_registered_1')
+
+
+
+
+
+
 
 # async def get_futsal_rounds(call: types.CallbackQuery, state: FSMContext):
 
 
 async def registration_start(call: types.CallbackQuery, state: FSMContext):
-    tournament_id = call.data
+    round_id = int(call.data)
     await call.answer()
     with Session() as session:
-        statement = select(Teams.team_id, Teams.team_name).where(Teams.tournament_id == tournament_id)
-        teams = session.execute(statement).all()
+        statement = select(TeamTournaments).join(Teams).where(TeamTournaments.round_id == round_id)
+        teams = session.execute(statement).scalars().all()
+        print(teams)
         kb = InlineKeyboardMarkup()
-        [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in teams]
+        [kb.insert(InlineKeyboardButton(text=i.team.team_name, callback_data=i.team_id)) for i in teams]
         kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
         await call.message.answer('Выберите вашу команду:', reply_markup=kb)
 
@@ -126,10 +147,12 @@ async def registration_start(call: types.CallbackQuery, state: FSMContext):
 # Добавлять ли ограничение по количеству админов?
 async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext):
     team_id = int(call.data)
+    print(team_id)
     async with state.proxy() as data:
         admin = [i for i in data.get('admin_data') if i.team_id == team_id]
         data['admin'].team_id = team_id
-        data['admin'].team_name = [i[1] for i in data.get('teams') if i[0] == team_id][0]
+        print(data['admin'])
+        data['admin'].team_name = [i.team.team_name for i in data.get('teams') if i.team_id == team_id][0]
         user = data['admin']
     if admin:
         await call.message.answer(f'Вы уже являетесь администратором {user.team_name}')
@@ -170,7 +193,9 @@ async def send_message_to_admin(message, state, user: AdminData, row_id):
 
 
 def register_greet(dp: Dispatcher):
+
     dp.register_callback_query_handler(cancel, text='cancel', state='*')
+    dp.register_callback_query_handler(get_list_rounds, state='not_registered_rounds')
     dp.register_message_handler(registration_fio , state='not_registered_fio')
     dp.register_callback_query_handler(registration_callback, text='add_team')
     dp.register_message_handler(greeting_funct, commands=['registration'])

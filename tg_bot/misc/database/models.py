@@ -75,6 +75,7 @@ class TeamTournaments(Base):
             ("tournament_id", "round_id"), ("tournaments.tournament_id", "tournaments.round_id")
         ),)
     tournament = relationship('Tournaments')
+    team = relationship('Teams')
     # tournament = relationship('Tournaments')
     # team = relationship('Teams')
 
