@@ -25,7 +25,9 @@ class Users(Base):
     user_id = Column(Integer, primary_key=True)
     user_full_name = Column(String, nullable=False)
     username = Column(String, nullable=False)
+    permision_id = Column(Integer, ForeignKey('permisions.permision_id'))
     admin_users = relationship('Admins', back_populates='user')
+    permision = relationship('Permisions')
 
 class Tournaments(Base):
     __tablename__ = 'tournaments'
