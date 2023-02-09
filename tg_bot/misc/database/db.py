@@ -19,6 +19,6 @@ def get_engine_connection(URLDATABASE=URLDATABASE):
 
 
 Session = get_engine_connection()
-with Session() as session:
-    res = session.execute(select(Admins)).scalars().all()
-    print(res)
+# with Session() as session:
+#     res = session.execute(select(Admins)).scalars().all()
+#     print(res)

@@ -3,16 +3,23 @@ from aiogram import types, Dispatcher
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import select, and_, distinct
 from tg_bot.misc.database.db import  get_engine_connection
+from tg_bot.misc.database.db import  Session
 from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users, Admins, TeamTournaments
 from aiogram.dispatcher import FSMContext
 from tg_bot.keyboards.inline import admin_kb_confirm_registration
 from tg_bot.keyboards.callbackdatas import team_choice_callback
+from tg_bot.handlers.admin.add_player import admin_start, enter_player_name
+from tg_bot.misc.funcs.get_lists_func import get_tournaments
+from tg_bot.keyboards.callbackdatas import admin_callback_data
+
 
 from dataclasses import dataclass
-Session = get_engine_connection()
+
 MAX_COUNT_ADMINS = 3 # Не используется
 regular_tournaments = (1025285, 1026113)
 
+
+# добавить хэндлер с вопросом, где узнать кем хочет стать пользователь игрок/админ и тд
 @dataclass
 class UserInfo:
     user_full_name: str = None
@@ -38,6 +45,13 @@ async def greeting_funct(message: types.Message, state: FSMContext):
         statement_admin = select(Admins).where(Admins.user_id == message.from_user.id)
         admin = session.execute(statement_admin).scalars().all()
 
+        # if admin[0].user.permision_id == 0:
+        #     # from admin/add_player
+        #     await admin_start(message, state)
+        #     return
+        # print(admin[0].user.permision_id)
+        # await state.update_data(admin_data=admin)
+
         if not admin:
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [
@@ -47,6 +61,7 @@ async def greeting_funct(message: types.Message, state: FSMContext):
             ])
             await message.answer('Вы не являетесь администратором команды.\nДля добавления команды, нажмите "Зарегистрироваться"',
                                  reply_markup=kb)
+
         else:
             await state.update_data(admin_data=admin)
             answer = ', '.join(i.team.team_name for i in admin)
@@ -95,9 +110,7 @@ async def registration_fio(message: types.Message,state: FSMContext):
 
 async def get_list_tournaments(message: types.Message, state: FSMContext):
     with Session() as session:
-        statement1 = select(distinct(Tournaments.tournament_id), Tournaments.name_tournament)
-        tournaments = session.execute(statement1).all()
-        print(tournaments)
+        tournaments = get_tournaments(session)
         kb = InlineKeyboardMarkup()
         [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
         kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
@@ -124,11 +137,6 @@ async def get_list_rounds(call: types.CallbackQuery, state: FSMContext):
 
 
 
-
-
-# async def get_futsal_rounds(call: types.CallbackQuery, state: FSMContext):
-
-
 async def registration_start(call: types.CallbackQuery, state: FSMContext):
     round_id = int(call.data)
     await call.answer()
@@ -148,7 +156,10 @@ async def registration_start(call: types.CallbackQuery, state: FSMContext):
 async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext):
     team_id = int(call.data)
     print(team_id)
+
     async with state.proxy() as data:
+        # if data['admin_data'].user.permision_id == 0:
+        #     await enter_player_name(call, state)
         admin = [i for i in data.get('admin_data') if i.team_id == team_id]
         data['admin'].team_id = team_id
         print(data['admin'])
