@@ -43,8 +43,12 @@ async def greeting_funct(message: types.Message, state: FSMContext):
     with Session() as session:
         statement_admin = select(Admins).where(Admins.user_id == message.from_user.id)
         admin = session.execute(statement_admin).scalars().all()
-        print(admin[0].user.permision_id)
-        await state.update_data(admin_data=admin)
+        # if admin[0].user.permision_id == 0:
+        #     # from admin/add_player
+        #     await admin_start(message, state)
+        #     return
+        # print(admin[0].user.permision_id)
+        # await state.update_data(admin_data=admin)
         if not admin:
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [
@@ -54,10 +58,7 @@ async def greeting_funct(message: types.Message, state: FSMContext):
             ])
             await message.answer('Вы не являетесь администратором команды.\nДля добавления команды, нажмите "Зарегистрироваться"',
                                  reply_markup=kb)
-        elif admin[0].user.permision_id == 0:
-            # from admin/add_player
-            await admin_start(message, state)
-            return
+
         else:
             await state.update_data(admin_data=admin)
             answer = ', '.join(i.team.team_name for i in admin)
