@@ -25,7 +25,6 @@ class UserInfo:
     user_full_name: str = None
     user_id: str = None
     username: str = None
-    # in_base: bool = False
 
 @dataclass
 class AdminData:
@@ -71,30 +70,30 @@ def create_kb_registration(admin):
     return kb
 
 
+def check_user_in_db(message):
+    with Session() as session:
+        statement_user = select(Users).where(Users.user_id == int(message.from_user.id))
+        user_from_db = session.execute(statement_user).scalars().first()
+        return user_from_db
 
 
 
 def get_user_data(message):
-    with Session() as session:
-        statement_user = select(Users).where(Users.user_id == int(message.from_user.id))
-        user_from_db = session.execute(statement_user).scalars().first()
-        user = AdminData(
-            user=UserInfo(
-                user_id=message.from_user.id,
-                username=message.from_user.username
-            )
+    user_from_db = check_user_in_db(message)
+    user = UserInfo(
+            user_id=message.from_user.id,
+            username=message.from_user.username
         )
-        if user_from_db:
-            # user.user.in_base = True
-            user.user.user_full_name = user_from_db.user_full_name
-        return user
+    if user_from_db:
+        user.user_full_name = user_from_db.user_full_name
+    return user
 
 
 async def registration_callback(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text('Вы выбрали регистрацию')
     user = get_user_data(call)
     await state.update_data(user_info=user)
-    if not user.user.user_full_name:
+    if not user.user_full_name:
         await call.message.answer('Введите свое ФИО:')
         await state.set_state('not_registered_fio')
     else:
@@ -103,9 +102,10 @@ async def registration_callback(call: types.CallbackQuery, state: FSMContext):
 
 async def registration_fio(message: types.Message,state: FSMContext):
     async with state.proxy() as data:
-        data['user_info'].user.user_full_name = message.text
+        # data['user_info'].user.user_full_name = message.text
+        data['user_info'].user_full_name = message.text.strip()
         user = data.get('user_info')
-    send_user_db(user.user)
+    send_user_db(user)
     await get_list_tournaments(message, state)
 
 
@@ -115,8 +115,6 @@ async def get_list_tournaments(message: types.Message, state: FSMContext):
         kb = InlineKeyboardMarkup()
         [kb.insert(InlineKeyboardButton(text=i[1], callback_data=i[0])) for i in tournaments]
         kb.insert(InlineKeyboardButton(text='Отмена❌', callback_data='cancel'))
-        # await message.answer('Выберите лигу, где играет ваша команда:',
-        #                      reply_markup=kb)
         await message.answer('Турнир, где играет ваша команда:',
                              reply_markup=kb)
         await state.set_state('not_registered_rounds')
@@ -133,9 +131,6 @@ async def get_list_rounds(call: types.CallbackQuery, state: FSMContext):
         await call.message.answer('Лига, где играет ваша команда:',
                              reply_markup=kb)
         await state.set_state('not_registered_1')
-
-
-
 
 
 async def registration_start(call: types.CallbackQuery, state: FSMContext):
@@ -164,22 +159,24 @@ def check_already_admin(data, team_id):
 async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext):
     team_id = int(call.data)
     async with state.proxy() as data:
+        team_name = [i.team.team_name for i in data.get('teams') if i.team_id == team_id][0]
         admin_data = data.get('admin_data')
         is_admin = check_already_admin(admin_data, team_id)
-        data['user_info'].team_id = team_id
-        print(data['user_info'])
-        data['user_info'].team_name = [i.team.team_name for i in data.get('teams') if i.team_id == team_id][0]
-        user = data['user_info']
-    if is_admin:
-        await call.message.answer(f'Вы уже являетесь администратором {user.team_name}')
-        return
-
-    row_id = send_confirm_database_return_row_id(user)
-    await send_message_to_admin(call.message, state, user, row_id)
+        if is_admin:
+            await call.message.answer(f'Вы уже являетесь администратором {team_name}')
+            return
+        user = data.get('user_info')
+        team_admin = AdminData(
+            user = user,
+            team_id=team_id,
+            team_name=team_name
+        )
+    row_id = send_confirm_database_return_row_id(team_admin)
+    await send_message_to_admin(call.message, state, team_admin, row_id)
     await call.message.answer('Ваша заявка на администрирование командой отправлена на подтверждение, ожидайте.', )
     await state.finish()
 
-
+# Возможно убрать user_full_name, username и сделать user_id как внешний ключ и доставать эту информацию через него?
 def send_confirm_database_return_row_id(user: AdminData):
     temporary_confirmation = Confirmation(user_id=int(user.user.user_id), team_id=user.team_id,
                                           user_full_name=user.user.user_full_name,
