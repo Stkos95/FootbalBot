@@ -44,7 +44,6 @@ async def greeting_funct(message: types.Message, state: FSMContext):
     with Session() as session:
         statement_admin = select(Admins).where(Admins.user_id == message.from_user.id)
         admin = session.execute(statement_admin).scalars().all()
-        print(admin)
         # if admin[0].user.permision_id == 0:
         #     # from admin/add_player
         #     await admin_start(message, state)
@@ -94,7 +93,7 @@ def get_user_data(message):
 async def registration_callback(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text('Вы выбрали регистрацию')
     user = get_user_data(call)
-    await state.update_data(admin=user)
+    await state.update_data(user_info=user)
     if not user.user.user_full_name:
         await call.message.answer('Введите свое ФИО:')
         await state.set_state('not_registered_fio')
@@ -104,8 +103,8 @@ async def registration_callback(call: types.CallbackQuery, state: FSMContext):
 
 async def registration_fio(message: types.Message,state: FSMContext):
     async with state.proxy() as data:
-        data['admin'].user.user_full_name = message.text
-        user = data.get('admin')
+        data['user_info'].user.user_full_name = message.text
+        user = data.get('user_info')
     send_user_db(user.user)
     await get_list_tournaments(message, state)
 
@@ -154,25 +153,29 @@ async def registration_start(call: types.CallbackQuery, state: FSMContext):
     await state.set_state('not_registered_team')
     await state.update_data(teams=teams)
 
+
+
+def check_already_admin(data, team_id):
+    return any(map(lambda x: x.team_id == team_id, data))
+
+
+
 # Добавлять ли ограничение по количеству админов?
 async def registration_team_chocen(call: types.CallbackQuery, state: FSMContext):
     team_id = int(call.data)
-    print(team_id)
-
     async with state.proxy() as data:
-        # if data['admin_data'].user.permision_id == 0:
-        #     await enter_player_name(call, state)
-        admin = [i for i in data.get('admin_data') if i.team_id == team_id]
-        data['admin'].team_id = team_id
-        print(data['admin'])
-        data['admin'].team_name = [i.team.team_name for i in data.get('teams') if i.team_id == team_id][0]
-        user = data['admin']
-    if admin:
+        admin_data = data.get('admin_data')
+        is_admin = check_already_admin(admin_data, team_id)
+        data['user_info'].team_id = team_id
+        print(data['user_info'])
+        data['user_info'].team_name = [i.team.team_name for i in data.get('teams') if i.team_id == team_id][0]
+        user = data['user_info']
+    if is_admin:
         await call.message.answer(f'Вы уже являетесь администратором {user.team_name}')
         return
 
     row_id = send_confirm_database_return_row_id(user)
-    await send_message_to_admin(call.message, state, data['admin'], row_id)
+    await send_message_to_admin(call.message, state, user, row_id)
     await call.message.answer('Ваша заявка на администрирование командой отправлена на подтверждение, ожидайте.', )
     await state.finish()
 
@@ -199,7 +202,6 @@ def send_user_db(user: UserInfo):
 
 async def send_message_to_admin(message, state, user: AdminData, row_id):
     config = message.bot.get('config')
-
     await message.bot.send_message(chat_id=config.admin, text=f'Была отправлена заявка на управление командой {user.team_name} от {user.user.user_full_name} (@{user.user.username})!',
                                    reply_markup=admin_kb_confirm_registration(row_id))
     await state.finish()
