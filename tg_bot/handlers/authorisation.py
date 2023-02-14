@@ -25,7 +25,7 @@ class UserInfo:
     user_full_name: str = None
     user_id: str = None
     username: str = None
-    in_base: bool = False
+    # in_base: bool = False
 
 @dataclass
 class AdminData:
@@ -44,34 +44,36 @@ async def greeting_funct(message: types.Message, state: FSMContext):
     with Session() as session:
         statement_admin = select(Admins).where(Admins.user_id == message.from_user.id)
         admin = session.execute(statement_admin).scalars().all()
-
+        print(admin)
         # if admin[0].user.permision_id == 0:
         #     # from admin/add_player
         #     await admin_start(message, state)
         #     return
         # print(admin[0].user.permision_id)
         # await state.update_data(admin_data=admin)
-
+        keyboard = create_kb_registration(admin)
         if not admin:
-            kb = InlineKeyboardMarkup(inline_keyboard=[
-                [
-                    InlineKeyboardButton(text='Регистрация', callback_data='add_team'),
-                    InlineKeyboardButton(text='Отмена', callback_data='cancel'),
-                ]
-            ])
             await message.answer('Вы не являетесь администратором команды.\nДля добавления команды, нажмите "Зарегистрироваться"',
-                                 reply_markup=kb)
-
+                                 reply_markup=keyboard)
         else:
             await state.update_data(admin_data=admin)
             answer = ', '.join(i.team.team_name for i in admin)
-            kb_my_teams = InlineKeyboardMarkup()
-            for team in admin:
-                kb_my_teams.add(InlineKeyboardButton(text=team.team.team_name, callback_data=team_choice_callback.new(team_id=team.team_id)))
-            kb_my_teams.insert(InlineKeyboardButton(text='Добавить команду➕', callback_data='add_team'))
             await message.answer(f'Вы администратор команды "{answer}"\n'
                              f'Выберите действие:',
-                             reply_markup=kb_my_teams)
+                             reply_markup=keyboard)
+
+def create_kb_registration(admin):
+    kb = InlineKeyboardMarkup()
+    for team in admin:
+        kb.add(InlineKeyboardButton(text=team.team.team_name,
+                                             callback_data=team_choice_callback.new(team_id=team.team_id)))
+    kb.add(InlineKeyboardButton(text='Добавить команду➕', callback_data='add_team'))
+    kb.insert(InlineKeyboardButton(text='Отмена', callback_data='cancel'))
+    return kb
+
+
+
+
 
 def get_user_data(message):
     with Session() as session:
@@ -84,7 +86,7 @@ def get_user_data(message):
             )
         )
         if user_from_db:
-            user.user.in_base = True
+            # user.user.in_base = True
             user.user.user_full_name = user_from_db.user_full_name
         return user
 
@@ -93,7 +95,7 @@ async def registration_callback(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text('Вы выбрали регистрацию')
     user = get_user_data(call)
     await state.update_data(admin=user)
-    if not user.user.in_base:
+    if not user.user.user_full_name:
         await call.message.answer('Введите свое ФИО:')
         await state.set_state('not_registered_fio')
     else:
