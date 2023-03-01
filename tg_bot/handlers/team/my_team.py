@@ -40,6 +40,8 @@ async def get_my_squad(call: types.CallbackQuery, state: FSMContext, callback_da
     # await state.update_data(team_players=players)
     players = get_squad(team_id)
     answer = get_squad_answer(players)
+    async with state.proxy() as data:
+        data['team_id'] = team_id
 
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -76,3 +78,5 @@ def work_with_my_team(dp: Dispatcher):
     dp.register_callback_query_handler(my_team, team_choice_callback.filter())
     dp.register_callback_query_handler(get_my_squad, my_team_callback.filter(topic='squad'))
     dp.register_callback_query_handler(get_my_tournaments, my_team_callback.filter(topic='tournaments'))
+
+

@@ -12,7 +12,7 @@ from tg_bot.handlers.income_outcome_templates.templates_messages import registra
 from tg_bot.handlers.admin.check_doubles import reg_doubles
 
 from tg_bot.handlers.admin.add_player import players_request
-
+from tg_bot.handlers.admin.admins_actions import admin_choice_handlers
 
 def register_handlers(dp):
     register(dp)
@@ -22,6 +22,7 @@ def register_handlers(dp):
     work_with_my_team(dp)
     reg_doubles(dp)
     players_request(dp)
+    admin_choice_handlers(dp)
 
 def register_all_filters(dp):
     dp.filters_factory.bind(AdminCheck)

@@ -8,10 +8,10 @@ from tg_bot.misc.database.models import Tournaments, Teams, Confirmation, Users,
 from aiogram.dispatcher import FSMContext
 from tg_bot.keyboards.inline import admin_kb_confirm_registration
 from tg_bot.keyboards.callbackdatas import team_choice_callback
-from tg_bot.handlers.admin.add_player import admin_start, enter_player_name
+from tg_bot.handlers.admin.add_player import enter_player_name
 from tg_bot.misc.funcs.get_lists_func import get_tournaments
 from tg_bot.keyboards.callbackdatas import admin_callback_data
-
+from tg_bot.handlers.admin.admins_actions import admin_start
 
 from dataclasses import dataclass
 
@@ -51,11 +51,10 @@ async def greeting_funct(message: types.Message, state: FSMContext):
         statement_admin = select(Admins).where(Admins.user_id == message.from_user.id)
         admin = session.execute(statement_admin).scalars().all()
         # if admin[0].user.permision_id == 0:
-        #     # from admin/add_player
+        #
         #     await admin_start(message, state)
+        #     # await admin_test(message, state)
         #     return
-        # print(admin[0].user.permision_id)
-        # await state.update_data(admin_data=admin)
         keyboard = create_kb_registration(admin)
         if not admin:
             await message.answer('Вы не являетесь администратором команды.\nДля добавления команды, нажмите "Зарегистрироваться"',
