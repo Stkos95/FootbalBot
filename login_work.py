@@ -1,15 +1,21 @@
 import requests
 from bs4 import BeautifulSoup as bs
+from config import load_config
 
+config = load_config()
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36'
 }
 #
+LOGIN = config.other.login_lmfl
+PASSWORD = config.other.login_password
+
+
 login_data = {
 
-'login-form[login]': 'stkos1331@gmail.com',
-'login-form[password]': 'q1a1z1w1s1x1',
+'login-form[login]': LOGIN,
+'login-form[password]': PASSWORD,
 'login-form[rememberMe]': '0'
 }
 
