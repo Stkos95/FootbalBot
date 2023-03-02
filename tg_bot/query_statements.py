@@ -189,8 +189,8 @@ def get_data(q,token, var=None):
     return json.loads(r.text)
 
 
-def get_query(query,token, **args):
-    var = args
+def get_query(query,token, **kwargs):
+    var = kwargs
     query_result = get_data(query, token, var=var)['data']['frontend']
     return query_result
 
