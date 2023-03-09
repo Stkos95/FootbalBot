@@ -81,12 +81,14 @@ async def add_found_player(message: types.Message, state: FSMContext):
         team_id = data.get('team_id')
         players = process_players(team_id)
         found_players = data.get('found_players')
+        print(found_players)
 
     try:
         if int(found_players[player_number]) in players:
             await message.answer('Игрок уже в команде!')
             await state.finish()
         else:
+
             await message.answer('Игрок добавлен в команду!')
 
     except KeyError:
