@@ -1,6 +1,7 @@
 from config import load_config
 import requests
 import json
+
 conf = load_config()
 
 
@@ -177,6 +178,26 @@ QUERY_APPLICATION = ''' query
     } }
     '''
 
+
+QUERY_ALL_PLAYERS = ''' query
+         frontend  {
+            frontend {
+                players(first:5000){
+                    data{
+                        player_id
+                        last_name
+                        first_name
+                        middle_name
+                        birthday
+                        photo
+                        
+                    }
+                } 
+            } }
+            '''
+
+
+
 def get_data(q,token, var=None):
     headers = {
         'Api-key': token
@@ -189,8 +210,8 @@ def get_data(q,token, var=None):
     return json.loads(r.text)
 
 
-def get_query(query,token, **args):
-    var = args
+def get_query(query,token, **kwargs):
+    var = kwargs
     query_result = get_data(query, token, var=var)['data']['frontend']
     return query_result
 

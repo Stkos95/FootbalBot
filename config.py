@@ -19,6 +19,13 @@ class Joinsport:
     # token_women: str
     url: str
 
+@dataclass
+class Other:
+    login_lmfl : str
+    password_lmfl: str
+
+
+
 
 @dataclass
 class Config:
@@ -26,6 +33,7 @@ class Config:
     admin: int
     database: Database
     joinsport: Joinsport
+    other: Other
 
 
 
@@ -47,6 +55,10 @@ def load_config():
             token=env.str('TOKEN_MEN'),
             # token=env.str('TOKEN_WOMEN'),
             url=env.str('URL_JOINSPORT')
+        ),
+        other=Other(
+            login_lmfl=env.str('LOGIN_LMFL'),
+            password_lmfl=env.str('PASSWORD_LMFL')
         )
     )
 

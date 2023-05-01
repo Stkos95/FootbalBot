@@ -59,10 +59,11 @@ class Teams(Base):
 class Confirmation(Base):
     __tablename__ = 'confirmation'
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer)
-    username = Column(String, nullable=False)
-    user_full_name = Column(String, nullable=False)
-    team_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.user_id'))
+    # username = Column(String, nullable=False)
+
+    # user_full_name = Column(String, nullable=False)
+    team_id = Column(Integer, ForeignKey('teams.team_id'), nullable=False)
 
 class TeamTournaments(Base):
     __tablename__ = 'teams_application'
