@@ -25,9 +25,9 @@ PASSWORD = config.other.password_lmfl
 def initiate_driver():
     service = Service(executable_path=ChromeDriverManager().install())
     option = Options()
-    option.add_argument("start-maximized")
-    option.add_experimental_option('detach', True)
-    # option.add_argument('--headless')
+    # option.add_argument("start-maximized")
+    # option.add_experimental_option('detach', True)
+    option.add_argument('--headless')
     driver = webdriver.Chrome(service=service, options=option)
     return driver
 

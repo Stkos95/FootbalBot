@@ -47,7 +47,8 @@ async def check_player_fio_in_teams(message: types.Message, state: FSMContext):
     for  indx,player_id in enumerate(players_found):
 
         text += f'{indx + 1}) {players_found[player_id]["name"]}, {players_found[player_id]["birthday"]} г.р.\n'
-        res.update({indx + 1: player_id})
+        players_found[player_id].update(player_id=player_id)
+        res.update({indx + 1: players_found[player_id]})
     #     kb.insert(types.InlineKeyboardButton(text=players_found[player_id]['name'], callback_data=player_id))
     # await message.answer(text, reply_markup=kb)
     await message.answer(text)
@@ -82,9 +83,10 @@ async def add_found_player(message: types.Message, state: FSMContext):
         players = process_players(team_id)
         found_players = data.get('found_players')
         print(found_players)
+        print(players)
 
     try:
-        if int(found_players[player_number]) in players:
+        if int(found_players[player_number]['player_id']) in players:
             await message.answer('Игрок уже в команде!')
             await state.finish()
         else:
